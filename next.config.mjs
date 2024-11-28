@@ -28,7 +28,7 @@
 // next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true, // Disarankan untuk pengembangan dan produksi
+  reactStrictMode: false, // Disarankan untuk pengembangan dan produksi
   swcMinify: true, // Untuk optimasi build
   experimental: {
     appDir: true, // Aktifkan penggunaan struktur `src/app`

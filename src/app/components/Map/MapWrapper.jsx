@@ -26,11 +26,11 @@ const DynamicMainMap = dynamic(() => import("./MainMap"), {
   ssr: false, // Menonaktifkan SSR
 });
 
-const MapWrapper = ({ selectedCampaign }) => {
+const MapWrapper = ({ selectedCampaign, selectedCountry, selectedSettlement, selectedStatus }) => {
   return (
     <div>
       {/* Render komponen MainMap secara dinamis tanpa SSR */}
-      <DynamicMainMap selectedCampaign={selectedCampaign} />
+      <DynamicMainMap selectedCampaign={selectedCampaign} selectedCountry={selectedCountry} selectedSettlement={selectedSettlement} selectedStatus={selectedStatus} />
     </div>
   );
 };
