@@ -1,208 +1,3 @@
-// "use client";
-// import React, { useState } from "react";
-// import MapWrapper from "../Map/MapWrapper";
-
-// function Sidebar() {
-//   const [selectedCampaign, setSelectedCampaign] = useState("18");
-
-//   const handleCampaignChange = (event) => {
-//     setSelectedCampaign(event.target.value); // Update state campaign
-//   };
-
-//   return (
-//     <>
-//         <div className="sidebar-container hidden sm:hidden md:block w-64 bg-gray-800 text-white p-4 shadow-lg">
-//         <h2 className="text-2xl font-semibold mb-4 text-center">Filter Map</h2>
-
-//         {/* Filter Campaign */}
-//         <div className="mb-6">
-//             <label htmlFor="campaign" className="block text-sm font-medium mb-2">
-//             Select Campaign
-//             </label>
-//             <select
-//             id="campaign"
-//             name="campaign"
-//             value={selectedCampaign}
-//             onChange={handleCampaignChange} // Menangani perubahan pilihan campaign
-//             className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
-//             >
-//             <option value="0">Campaign 0</option>
-//             <option value="2">Campaign 2</option>
-//             <option value="4">Campaign 4</option>
-//             <option value="6">Campaign 6</option>
-//             <option value="8">Campaign 8</option>
-//             <option value="10">Campaign 10</option>
-//             <option value="12">Campaign 12</option>
-//             <option value="14">Campaign 14</option>
-//             <option value="16">Campaign 16</option>
-//             <option value="18">Campaign 18</option>
-//             </select>
-//         </div>
-
-//         {/* Langsung render MainMap dan kirimkan selectedCampaign dan selectedCountry sebagai prop */}
-//         </div>
-//         <div className="flex-1 overflow-auto">
-//             <MapWrapper selectedCampaign={selectedCampaign} />
-//         </div>
-//     </>
-//   );
-// }
-
-// export default Sidebar;
-
-
-// "use client";
-// import React, { useEffect, useState } from "react";
-// import MapWrapper from "../Map/MapWrapper";
-
-// function Sidebar() {
-//   const [campaigns, setCampaigns] = useState([]);
-//   const [countries, setCountries] = useState([]);
-//   const [selectedCampaign, setSelectedCampaign] = useState(""); // Initialize with empty string
-//   const [selectedCountry, setSelectedCountry] = useState(null); // Initialize with null to handle the data better
-//   const [isLoading, setIsLoading] = useState(true); // Track loading state
-
-//   const handleCampaignChange = (event) => {
-//     setSelectedCampaign(event.target.value); // Update selected campaign
-//   };
-
-//   const handleCountryChange = (event) => {
-//     const countryCode = event.target.value;
-//     const country = countries.find((country) => country.prefix === countryCode);
-//     setSelectedCountry(country); // Memperbarui negara yang dipilih
-//   };
-
-//   useEffect(() => {
-//     const fetchCountryData = async () => {
-//       try {
-//         const response = await fetch("./api/country", {
-//           method: "GET",
-//           headers: {
-//             "Content-Type": "application/json",
-//           },
-//         });
-
-//         if (!response.ok) {
-//           throw new Error(`HTTP error! status: ${response.status}`);
-//         }
-
-//         const countryData = await response.json();
-//         setCountries(countryData);
-//       } catch (error) {
-//         console.error("Error fetching country data:", error);
-//       }
-//     };
-
-//     const fetchCampaignData = async () => {
-//         try {
-//           const response = await fetch("./api/campaign", {
-//             method: "GET",
-//             headers: {
-//               "Content-Type": "application/json",
-//             },
-//           });
-  
-//           if (!response.ok) {
-//             throw new Error(`HTTP error! status: ${response.status}`);
-//           }
-  
-//           const data = await response.json();
-//           setCampaigns(data); // Store the fetched campaign data
-  
-//         } catch (error) {
-//           console.error("Error fetching data:", error);
-//         } finally {
-//           setIsLoading(false); // Stop loading when data fetch is complete
-//         }
-//       };
-      
-//     fetchCountryData();
-//     fetchCampaignData();
-//   }, []); // Only run once on component mount
-
-//   console.log('data campaign', selectedCountry);
-
-//   return (
-//     <>
-//       <div className="sidebar-container hidden sm:hidden md:block w-64 bg-gray-800 text-white p-4 shadow-lg">
-//         <h2 className="text-2xl font-semibold mb-4 text-center">Filter Map</h2>
-
-//         {/* Filter Country */}
-//         <div className="mb-6">
-//           <label htmlFor="campaign" className="block text-sm font-medium mb-2">
-//             Select Country
-//           </label>
-
-//           {isLoading ? (
-//             <div className="text-center text-white">Loading countries...</div>
-//           ) : (
-//             <select
-//               id="country"
-//               name="name"
-//               value={selectedCountry ? selectedCountry.prefix : ""}
-//               onChange={handleCountryChange}
-//               className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
-//             >
-//               <option value="" disabled>Select a country...</option>
-
-//               {countries.length > 0 ? (
-//                 countries.map((country, index) => (
-//                   <option key={index} value={country.prefix}>
-//                     {country.name}
-//                   </option>
-//                 ))
-//               ) : (
-//                 <option value="" disabled>No countries available</option>
-//               )}
-//             </select>
-//           )}
-//         </div>
-
-//         {/* Filter Campaign */}
-//         <div className="mb-6">
-//           <label htmlFor="campaign" className="block text-sm font-medium mb-2">
-//             Select Campaign
-//           </label>
-
-//           {isLoading ? (
-//             <div className="text-center text-white">Loading campaigns...</div>
-//           ) : (
-//             <select
-//               id="campaign"
-//               name="campaign"
-//               value={selectedCampaign} // Control value by selectedCampaign state
-//               onChange={handleCampaignChange} // Handle campaign selection change
-//               className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
-//             >
-//               <option value="" disabled>Select a campaign...</option>
-//               {campaigns.length > 0 ? (
-//                 campaigns.map((campaign, index) => (
-//                   <option key={index} value={campaign.campaign}>
-//                     Campaign {campaign.campaign}
-//                   </option>
-//                 ))
-//               ) : (
-//                 <option value="" disabled>No campaigns available</option>
-//               )}
-//             </select>
-//           )}
-//         </div>
-//       </div>
-
-//       <div className="flex-1 overflow-auto">
-//         {/* Pass selectedCountry data to MainMap */}
-//         <MapWrapper
-//           selectedCampaign={selectedCampaign}
-//           selectedCountry={selectedCountry}
-//         />
-//       </div>
-//     </>
-//   );
-// }
-
-// export default Sidebar;
-
-
 "use client";
 import React, { useEffect, useState } from "react";
 import MapWrapper from "../Map/MapWrapper";
@@ -212,7 +7,7 @@ function Sidebar() {
   const [countries, setCountries] = useState([]); // Daftar negara
   const [settlements, setSettlements] = useState([]) // Daftar settlement
   const [status, setStatus] = useState([]); // Daftar status
-  const [selectedCampaign, setSelectedCampaign] = useState(""); // Kampanye yang dipilih
+  const [selectedCampaign, setSelectedCampaign] = useState([]); // Kampanye yang dipilih
   const [selectedCountry, setSelectedCountry] = useState(null); // Negara yang dipilih
   const [selectedSettlement, setSelectedSettlement] = useState(null); // Settlement yang dipilih
   const [selectedStatus, setSelectedStatus] = useState(null); // Status yang dipilih
@@ -220,9 +15,24 @@ function Sidebar() {
   const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(true); // Loading state untuk kampanye
   const [isLoadingSettelments, setIsloadingSettelments] = useState(true);
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
-  
+  const [isCheckboxMode, setIsCheckboxMode] = useState(true); // Toggle untuk memilih mode (checkbox atau dropdown)
+
   const handleCampaignChange = (event) => {
-    setSelectedCampaign(event.target.value); // Memperbarui kampanye yang dipilih
+    if (isCheckboxMode) {
+      // Ketika menggunakan checkbox, simpan nilai sebagai string
+      const campaignValue = event.target.value; // Simpan sebagai string
+  
+      // Update state dengan menambahkan atau menghapus campaign dari selectedCampaign
+      setSelectedCampaign((prevCampaigns) =>
+        prevCampaigns.includes(campaignValue)
+          ? prevCampaigns.filter((campaign) => campaign !== campaignValue) // Hapus jika sudah tercentang
+          : [...prevCampaigns, campaignValue] // Tambahkan jika belum tercentang
+      );
+    } else {
+      // Ketika menggunakan dropdown (multiple selection), ambil semua opsi yang dipilih
+      const campaignValues = Array.from(event.target.selectedOptions, (option) => option.value);
+      setSelectedCampaign(campaignValues); // Update state dengan array kampanye yang dipilih
+    }
   };
 
   const handleCountryChange = (event) => {
@@ -342,6 +152,7 @@ useEffect(() => {
   console.log('selectedSettlement', selectedSettlement);
   console.log('selectedCountry', selectedCountry);
   console.log('selectedStatus', selectedStatus);
+  console.log('selectedCampaign', selectedCampaign);
   return (
     <>
       <div className="sidebar-container hidden sm:hidden md:block w-64 bg-gray-800 text-white p-4 shadow-lg">
@@ -408,36 +219,88 @@ useEffect(() => {
           )}
         </div>
 
+        {/* Toggle untuk memilih mode filter */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium mb-2">Select Filter Mode</label>
+          <div className="flex space-x-4">
+            <button
+              onClick={() => setIsCheckboxMode(true)}
+              className={`px-4 py-2 rounded-md ${isCheckboxMode ? 'bg-pink-500 text-white' : 'bg-gray-700 text-gray-300'}`}
+            >
+              Checkbox
+            </button>
+            <button
+              onClick={() => setIsCheckboxMode(false)}
+              className={`px-4 py-2 rounded-md ${!isCheckboxMode ? 'bg-pink-500 text-white' : 'bg-gray-700 text-gray-300'}`}
+            >
+              Dropdown
+            </button>
+          </div>
+        </div>
+
         {/* Filter Campaign */}
         <div className="mb-6">
           <label htmlFor="campaign" className="block text-sm font-medium mb-2">Select campaign</label>
-
-          {isLoadingCampaigns ? (
-            <select
+          <div>
+            {isLoadingCampaigns ? (
+              <select
                 id="campaign"
                 className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
-            >
-                <option value="" disabled>No campaigns available</option>
-            </select>
-          ) : (
-            <select
-              id="campaign"
-              value={selectedCampaign}
-              onChange={handleCampaignChange}
-              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
-            >
-              <option value="" disabled>Select a campaign...</option>
-              {campaigns.length > 0 ? (
-                campaigns.map((campaign, index) => (
-                  <option key={index} value={campaign.campaign}>
-                    Campaign {campaign.campaign}
-                  </option>
-                ))
+              >
+                <option value="" disabled>No campaign available</option>
+              </select>
+            ) : (
+              isCheckboxMode ? (
+                <div className="space-y-2">
+                {campaigns.map((campaign, index) => (
+                  <div
+                    key={index}
+                    className={`flex items-center p-2 rounded-md transition-colors duration-200 ${selectedCampaign.includes(campaign.campaign)
+                      ? 'bg-blue-500 text-white' // Background biru jika dicentang
+                      : 'bg-gray-700 text-gray-300' // Background abu-abu jika tidak dicentang
+                      }`}
+                  >
+                    {/* Checkbox */}
+                    <input
+                      type="checkbox"
+                      id={`campaign-${campaign.campaign}`}
+                      value={String(campaign.campaign)} // pastikan nilai yang dikirim adalah string
+                      checked={selectedCampaign.includes(String(campaign.campaign))} // pastikan perbandingan selalu menggunakan string
+                      onChange={handleCampaignChange} // Menangani perubahan pada checkbox
+                      className="mr-2"
+                    />
+                    {/* Label */}
+                    <label
+                      htmlFor={`campaign-${campaign.campaign}`}
+                      className={`flex-1 ${selectedCampaign.includes(String(campaign.campaign)) ? 'font-semibold' : 'font-normal'}`}
+                    >
+                      {`Campaign ${campaign.campaign}`}
+                    </label>
+                  </div>
+                ))}
+              </div>
               ) : (
-                <option value="" disabled>No campaigns available</option>
-              )}
-            </select>
-          )}
+                <select
+                  id="campaign"
+                  value={selectedCampaign}
+                  onChange={handleCampaignChange}
+                  multiple
+                  className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  style={{ padding: '0.5rem', fontSize: '1rem' }} // Padding agar elemen lebih nyaman
+                >
+                  {campaigns.map((campaign, index) => (
+                    <option
+                      key={index}
+                      value={campaign.campaign}
+                      className="py-2" // Tambahkan padding vertikal pada opsi untuk memberikan jarak antar item
+                    >
+                      {`Campaign ${campaign.campaign}`}
+                    </option>
+                  ))}
+                </select>
+              )
+            )}
+          </div>
         </div>
 
         {/* Filter Status */}

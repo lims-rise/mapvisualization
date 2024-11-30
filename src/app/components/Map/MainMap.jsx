@@ -39,52 +39,53 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
     }, [center, zoom]); // Update map view when center or zoom changes
 
     useEffect(() => {
-        const fetchData = async () => {
-            
-        if (!selectedCampaign) {
-                console.log("No campaign selected, skipping data fetch.");
-                return; // Jika selectedCampaign kosong, kita hentikan proses fetching
-        }
-        try {
-            // Membangun URL dengan parameter filter campaign
-            let url = "./api/data";
-            
-            // Menambahkan filter campaign ke URL
-            if (selectedCampaign) {
-            url += `?campaign=${selectedCampaign}`;
-            }
-
-            // Mengambil data dari API untuk geojson data (peta bangunan)
-            const res = await fetch(url);
-            if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            const data = await res.json();
-            setData(data);
-
-            // Ambil data boundary (MultiLineString) dari API tambahan
-            const boundaryRes = await fetch("./api/boundary");
-            if (!boundaryRes.ok) {
-            throw new Error(`HTTP error! status: ${boundaryRes.status}`);
-            }
-            const boundaryData = await boundaryRes.json();
-            setBoundaryData(boundaryData);
-
-            // Ambil data road_access (MultiLineString) dari API tambahan
-            const roadAccess = await fetch("./api/access");
-            if (!roadAccess.ok) {
-            throw new Error(`HTTP error! status: ${roadAccess.status}`);
-            }
-            const roadAccessData = await roadAccess.json();
-            setRoadAccessData(roadAccessData);
-
-        } catch (error) {
-            setError(error);
-        }
-        };
-
-        fetchData(); // Ambil data setiap kali selectedCampaign berubah
-    }, [selectedCampaign]);
+      const fetchData = async () => {
+          if (!selectedCampaign || selectedCampaign.length === 0) {
+              console.log("No campaign selected, skipping data fetch.");
+              return; // Jika tidak ada kampanye yang dipilih, hentikan proses fetch
+          }
+          
+          try {
+              // Membangun URL dengan parameter filter campaign
+              let url = "./api/data";
+              
+              // Menambahkan filter kampanye ke URL
+              if (selectedCampaign.length > 0) {
+                  url += `?campaign=${selectedCampaign.join(',')}`; // Mengirimkan daftar kampanye yang dipilih
+              }
+  
+              // Mengambil data dari API untuk geojson data (peta bangunan)
+              const res = await fetch(url);
+              if (!res.ok) {
+                  throw new Error(`HTTP error! status: ${res.status}`);
+              }
+              const data = await res.json();
+              setData(data);
+  
+              // Ambil data boundary (MultiLineString) dari API tambahan
+              const boundaryRes = await fetch("./api/boundary");
+              if (!boundaryRes.ok) {
+                  throw new Error(`HTTP error! status: ${boundaryRes.status}`);
+              }
+              const boundaryData = await boundaryRes.json();
+              setBoundaryData(boundaryData);
+  
+              // Ambil data road_access (MultiLineString) dari API tambahan
+              const roadAccess = await fetch("./api/access");
+              if (!roadAccess.ok) {
+                  throw new Error(`HTTP error! status: ${roadAccess.status}`);
+              }
+              const roadAccessData = await roadAccess.json();
+              setRoadAccessData(roadAccessData);
+  
+          } catch (error) {
+              setError(error);
+          }
+      };
+  
+      fetchData(); // Ambil data setiap kali selectedCampaign berubah
+  }, [selectedCampaign]);
+  
 
     // Fungsi untuk menangani perubahan pada center dan zoom
     // const handleViewportChange = (viewport) => {
@@ -183,33 +184,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
         }
     };
 
-    // const geoJsonFeatures = useMemo(() => {
-    //     return data.map((item) => {
-    //     if (item.geom) {
-    //         const geoJsonData = convertToGeoJSON(item);
-    //         const centroid = calculateCentroid(geoJsonData.coordinates);
-    //         return {
-    //         geoJsonData,
-    //         centroid,
-    //         gid: item.gid,
-    //         id_map: item.id_map,
-    //         id_building: item.id_building,
-    //         hoid: item.hoid,
-    //         houseno: item.houseno,
-    //         settlement: item.settlement,
-    //         status: item.status,
-    //         structure: item.structure,
-    //         country: item.country,
-    //         campaign: item.campaign,
-    //         connected: item.connected,
-    //         note: item.note
-    //         };
-    //     }
-    //     return null;
-    //     }).filter(item => item !== null);
-    // }, [data]);
-
-    const geoJsonFeatures = useMemo(() => {
+ const geoJsonFeatures = useMemo(() => {
       return data
         .filter((item) => {
           // Filter berdasarkan status
@@ -217,6 +192,11 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
             return item.status === selectedStatus;
           }
           return true; // Jika "All" dipilih atau tidak ada filter status, tampilkan semua data
+        })
+        .filter((item) => {
+          if (selectedCampaign && !selectedCampaign.includes(item.campaign)) {
+            return true; // Hanya tampilkan data yang campaign-nya sesuai
+          }
         })
         .map((item) => {
           if (item.geom) {
