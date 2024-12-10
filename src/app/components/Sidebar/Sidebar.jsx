@@ -1,21 +1,31 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import MapWrapper from "../Map/MapWrapper";
+import RightSidebar from "../RightSidebar/RightSidebar";
 
 function Sidebar() {
   const [campaigns, setCampaigns] = useState([]); // Daftar kampanye
   const [countries, setCountries] = useState([]); // Daftar negara
   const [settlements, setSettlements] = useState([]) // Daftar settlement
   const [status, setStatus] = useState([]); // Daftar status
+  const [objectives, setObjectives] = useState([]); //Daftar objective
   const [selectedCampaign, setSelectedCampaign] = useState([]); // Kampanye yang dipilih
   const [selectedCountry, setSelectedCountry] = useState(null); // Negara yang dipilih
   const [selectedSettlement, setSelectedSettlement] = useState(null); // Settlement yang dipilih
   const [selectedStatus, setSelectedStatus] = useState(null); // Status yang dipilih
+  const [selectedObjective, setSelectedObjective] = useState(null); // Objective yang dipilih
   const [isLoadingCountries, setIsLoadingCountries] = useState(true); // Loading state untuk negara
   const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(true); // Loading state untuk kampanye
-  const [isLoadingSettelments, setIsloadingSettelments] = useState(true);
-  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+  const [isLoadingSettelments, setIsloadingSettelments] = useState(true); // Loading state untuk settlement
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true); // Loading state untuk status
+  const [isLoadingObjective, setIsloadingObjective] = useState(true); //Loading state untuk objective
   const [isCheckboxMode, setIsCheckboxMode] = useState(true); // Toggle untuk memilih mode (checkbox atau dropdown)
+
+  const handleObjectiveChange = (event) => {
+    const objectiveCode = event.target.value; // Ambil value (url_name)
+    const selectedObj = objectives.find((objective) => objective.url_name === objectiveCode);
+    setSelectedObjective(selectedObj); // Simpan objek lengkap jika perlu
+  };
 
   const handleCampaignChange = (event) => {
     if (isCheckboxMode) {
@@ -141,11 +151,33 @@ useEffect(() => {
   fetchStatusData();
 }, [selectedCountry]);
 
+useEffect(() => {
+  const fetchObjectiveData = async () => {
+      if(!selectedCountry) return;
+
+      try {
+        const response = await fetch(`./api/objective?country=${selectedCountry.prefix}`);
+        if(!response.ok) {
+          throw new Error(`HTTP error ! status: ${response.status} `);
+        }
+        const objectiveData = await response.json();
+        console.log('Objective Data: ', objectiveData);
+        setObjectives(objectiveData);
+        setIsloadingObjective(false);
+      } catch {
+        console.error("Error fetching objective data: ", error);
+        setIsloadingObjective(false);
+      }
+  }
+  fetchObjectiveData();
+},[selectedCountry]);
+
   // Reset selectedCampaign dan selectedSettlement saat selectedCountry berubah
   useEffect(() => {
     setSelectedCampaign(""); 
     setSelectedSettlement(null); 
     setSelectedStatus("");
+    setSelectedObjective("");
   }, [selectedCountry]); 
 
 
@@ -155,26 +187,28 @@ useEffect(() => {
   console.log('selectedCampaign', selectedCampaign);
   return (
     <>
-      <div className="sidebar-container hidden sm:hidden md:block w-64 bg-gray-800 text-white p-4 shadow-lg">
-        <h2 className="text-2xl font-semibold mb-4 text-center">Filter Map</h2>
+    <div className="sidebar-container hidden sm:hidden md:block w-64 bg-gray-800 text-white shadow-lg max-h-screen overflow-y-auto overflow-x-hidden custom-scrollbar">
+      <div className="w-64 bg-primary sm:hidden md:block text-white shadow-lg max-h-screen overflow-y-auto rounded-b-3xl fixed top-0 left-0 z-20">
+        <h2 className="text-3xl font-semibold p-4 text-center">Filter Map</h2>
+      </div>
 
+      <div className="p-4  max-h-full mt-20">
         {/* Filter Country */}
         <div className="mb-6">
           <label htmlFor="country" className="block text-sm font-medium mb-2">Select country</label>
-
           {isLoadingCountries ? (
             <select
-                id="country"
-                className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              id="country"
+              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
             >
-                <option value="" disabled>No countries available</option>
+              <option value="" disabled>No countries available</option>
             </select>
           ) : (
             <select
               id="country"
               value={selectedCountry ? selectedCountry.prefix : ""}
               onChange={handleCountryChange}
-              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="" disabled>Select a country...</option>
               {countries.map((country) => (
@@ -189,20 +223,19 @@ useEffect(() => {
         {/* Filter Settlement */}
         <div className="mb-6">
           <label htmlFor="settlement" className="block text-sm font-medium mb-2">Select settlement</label>
-
           {isLoadingSettelments ? (
             <select
-                id="settlement"
-                className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              id="settlement"
+              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
             >
-                <option value="" disabled>No settlements available</option>
+              <option value="" disabled>No settlements available</option>
             </select>
           ) : (
             <select
               id="settlement"
               value={selectedSettlement ? selectedSettlement.settlement : ""}
               onChange={handleSettlementChange}
-              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="" disabled>Select a settlement...</option>
               {settlements.length > 0 ? (
@@ -215,7 +248,6 @@ useEffect(() => {
                 <option value="" disabled>No settlements available</option>
               )}
             </select>
-
           )}
         </div>
 
@@ -225,13 +257,13 @@ useEffect(() => {
           <div className="flex space-x-4">
             <button
               onClick={() => setIsCheckboxMode(true)}
-              className={`px-4 py-2 rounded-md ${isCheckboxMode ? 'bg-pink-500 text-white' : 'bg-gray-700 text-gray-300'}`}
+              className={`px-4 py-2 rounded-md ${isCheckboxMode ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300'}`}
             >
               Checkbox
             </button>
             <button
               onClick={() => setIsCheckboxMode(false)}
-              className={`px-4 py-2 rounded-md ${!isCheckboxMode ? 'bg-pink-500 text-white' : 'bg-gray-700 text-gray-300'}`}
+              className={`px-4 py-2 rounded-md ${!isCheckboxMode ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300'}`}
             >
               Dropdown
             </button>
@@ -245,47 +277,47 @@ useEffect(() => {
             {isLoadingCampaigns ? (
               <select
                 id="campaign"
-                className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="" disabled>No campaign available</option>
               </select>
             ) : (
               isCheckboxMode ? (
                 <div className="space-y-2">
-                {campaigns.map((campaign, index) => (
-                  <div
-                    key={index}
-                    className={`flex items-center p-2 rounded-md transition-colors duration-200 ${selectedCampaign.includes(campaign.campaign)
-                      ? 'bg-blue-500 text-white' // Background biru jika dicentang
-                      : 'bg-gray-700 text-gray-300' // Background abu-abu jika tidak dicentang
-                      }`}
-                  >
-                    {/* Checkbox */}
-                    <input
-                      type="checkbox"
-                      id={`campaign-${campaign.campaign}`}
-                      value={String(campaign.campaign)} // pastikan nilai yang dikirim adalah string
-                      checked={selectedCampaign.includes(String(campaign.campaign))} // pastikan perbandingan selalu menggunakan string
-                      onChange={handleCampaignChange} // Menangani perubahan pada checkbox
-                      className="mr-2"
-                    />
-                    {/* Label */}
-                    <label
-                      htmlFor={`campaign-${campaign.campaign}`}
-                      className={`flex-1 ${selectedCampaign.includes(String(campaign.campaign)) ? 'font-semibold' : 'font-normal'}`}
+                  {campaigns.map((campaign, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-center p-2 rounded-md transition-colors duration-200 ${selectedCampaign.includes(campaign.campaign)
+                        ? 'bg-blue-500 text-white' // Background biru jika dicentang
+                        : 'bg-gray-700 text-gray-300' // Background abu-abu jika tidak dicentang
+                        }`}
                     >
-                      {`Campaign ${campaign.campaign}`}
-                    </label>
-                  </div>
-                ))}
-              </div>
+                      {/* Checkbox */}
+                      <input
+                        type="checkbox"
+                        id={`campaign-${campaign.campaign}`}
+                        value={String(campaign.campaign)} // pastikan nilai yang dikirim adalah string
+                        checked={selectedCampaign.includes(String(campaign.campaign))} // pastikan perbandingan selalu menggunakan string
+                        onChange={handleCampaignChange} // Menangani perubahan pada checkbox
+                        className="mr-2"
+                      />
+                      {/* Label */}
+                      <label
+                        htmlFor={`campaign-${campaign.campaign}`}
+                        className={`flex-1 ${selectedCampaign.includes(String(campaign.campaign)) ? 'font-semibold' : 'font-normal'}`}
+                      >
+                        {`Campaign ${campaign.campaign}`}
+                      </label>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <select
                   id="campaign"
                   value={selectedCampaign}
                   onChange={handleCampaignChange}
                   multiple
-                  className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary overflow-y-auto overflow-x-hidden custom-scrollbar"
                   style={{ padding: '0.5rem', fontSize: '1rem' }} // Padding agar elemen lebih nyaman
                 >
                   {campaigns.map((campaign, index) => (
@@ -306,48 +338,82 @@ useEffect(() => {
         {/* Filter Status */}
         <div className="mb-6">
           <label htmlFor="status" className="block text-sm font-medium mb-2">Select status</label>
-          {
-            isLoadingStatus ? (
-              <select
-                id="status"
-                className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              >
+          {isLoadingStatus ? (
+            <select
+              id="status"
+              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="" disabled>No status available</option>
+            </select>
+          ) : (
+            <select
+              id="status"
+              value={selectedStatus ? selectedStatus : ""}
+              onChange={handleStatusChange}
+              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="" disabled>Select a status</option>
+              <option value="all">All</option> {/* Opsi All */}
+              {status.length > 0 ? (
+                status.map((sts, index) => (
+                  <option key={index} value={sts.status}>
+                    {sts.status}
+                  </option>
+                ))
+              ) : (
                 <option value="" disabled>No status available</option>
-              </select>
-            ) : (
-              <select
-                id="status"
-                value={selectedStatus ? selectedStatus : ""}
-                onChange={handleStatusChange}
-                className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              >
-                <option value="" disabled>Select a status</option>
-                <option value="all">All</option> {/* Opsi All */}
-                {
-                  status.length > 0 ? (
-                    status.map((sts, index) => (
-                      <option key={index} value={sts.status}>
-                        {sts.status}
-                      </option>
-                    ))
-                  ) : (
-                    <option value="" disabled>No status available</option>
-                  )
-                }
-              </select>
-            )
-          }
+              )}
+            </select>
+          )}
+        </div>
+
+        {/* Filter Objective */}
+        <div className="mb-6">
+          <label htmlFor="objective" className="block text-sm font-medium mb-2">Select Objective</label>
+          {isLoadingObjective ? (
+            <select
+              id="objective"
+              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="" disabled>No Objective available</option>
+            </select>
+          ) : (
+            <select
+              id="objective"
+              value={selectedObjective ? selectedObjective.url_name : ""}
+              onChange={handleObjectiveChange}
+              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="" disabled>Select a objective</option>
+              {objectives.length > 0 ? (
+                objectives.map((objective, index) => (
+                  <option key={index} value={objective.url_name}>
+                    {objective.name}
+                  </option>
+                ))
+              ) : (
+                <option value="" disabled>No objective available</option>
+              )}
+            </select>
+          )}
         </div>
       </div>
-      <div className="flex-1 overflow-auto">
-        {/* Pass selectedCountry data to MapWrapper */}
-        <MapWrapper
-          selectedCampaign={selectedCampaign}
-          selectedCountry={selectedCountry}
-          selectedSettlement={selectedSettlement}
-          selectedStatus={selectedStatus}
-        />
-      </div>
+    </div>
+    <div className="flex-1 overflow-auto">
+      {/* Pass selectedCountry data to MapWrapper */}
+      <MapWrapper
+        selectedCampaign={selectedCampaign}
+        selectedCountry={selectedCountry}
+        selectedSettlement={selectedSettlement}
+        selectedStatus={selectedStatus}
+        selectedObjective = {selectedObjective?.url_name}
+      />
+    </div>
+    <div className="sidebar-container hidden sm:hidden md:block w-64 bg-gray-800 text-white p-4 shadow-lg max-h-screen overflow-y-auto">
+      <RightSidebar
+          selectedSettlement1={selectedSettlement}
+      />
+    </div>
     </>
   );
 }

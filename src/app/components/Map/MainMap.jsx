@@ -6,15 +6,52 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import proj4 from "proj4";
 
-const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, selectedStatus }) => {
+// Buat ikon kustom
+const inhouseIcon = new L.Icon({
+  iconUrl: '/icons/inhouse.png', // Path relatif ke public/ // Ganti dengan path ke gambar atau ikon Anda
+  iconSize: [32, 32], // Ukuran ikon (lebar, tinggi)
+  iconAnchor: [16, 32], // Titik anchor (tempat marker akan ditempatkan di peta)
+  popupAnchor: [0, -32], // Titik popup terkait dengan ikon (jarak dari ikon)
+});
+
+const soilIcon = new L.Icon({
+  iconUrl: '/icons/soil.png', // Path relatif ke public/ // Ganti dengan path ke gambar atau ikon Anda
+  iconSize: [32, 32], // Ukuran ikon (lebar, tinggi)
+  iconAnchor: [16, 32], // Titik anchor (tempat marker akan ditempatkan di peta)
+  popupAnchor: [0, -32], // Titik popup terkait dengan ikon (jarak dari ikon)
+});
+
+const waterIcon = new L.Icon({
+  iconUrl: '/icons/water.png', // Path relatif ke public/ // Ganti dengan path ke gambar atau ikon Anda
+  iconSize: [32, 32], // Ukuran ikon (lebar, tinggi)
+  iconAnchor: [16, 32], // Titik anchor (tempat marker akan ditempatkan di peta)
+  popupAnchor: [0, -32], // Titik popup terkait dengan ikon (jarak dari ikon)
+});
+
+const wellIcon = new L.Icon({
+  iconUrl: '/icons/well.png', // Path relatif ke public/ // Ganti dengan path ke gambar atau ikon Anda
+  iconSize: [32, 32], // Ukuran ikon (lebar, tinggi)
+  iconAnchor: [16, 32], // Titik anchor (tempat marker akan ditempatkan di peta)
+  popupAnchor: [0, -32], // Titik popup terkait dengan ikon (jarak dari ikon)
+});
+
+
+const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, selectedStatus, selectedObjective }) => {
     const [data, setData] = useState([]);
     const [boundaryData, setBoundaryData] = useState([]);
     const [roadAccessData, setRoadAccessData] = useState([]);
+    const [bootsockData, setBootsockData] = useState([]);
+    const [inhousewaterData, setInhousewaterData] = useState([]);
+    const [soilData, setSoilData] = useState([]);
+    const [waterData, setWaterData] = useState([]);
+    const [wellData, setWellData] = useState([]);
     const [center, setCenter] = useState([-5.7535389, 157.0943453]);
     const [zoom, setZoom] = useState(4); // default zoom level
     const mapRef = useRef(null); // Reference to the map
     const [error, setError] = useState(null);
     const utmProjection = "EPSG:4326";
+
+    console.log('selectedObjective', selectedObjective);
 
     useEffect(() => {
         console.log('datanya peta', selectedCountry)
@@ -77,6 +114,14 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
               }
               const roadAccessData = await roadAccess.json();
               setRoadAccessData(roadAccessData);
+
+              // // Ambil data bootsock (MultiLineString) dari API tambahan
+              // const bootsock = await fetch("./api/bootsock");
+              // if (!bootsock.ok) {
+              //   throw new Error(`HTTP error! status: ${bootsock.status}`);
+              // }
+              // const bootsockData = await bootsock.json();
+              // setBootsockData(bootsockData);
   
           } catch (error) {
               setError(error);
@@ -85,6 +130,95 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
   
       fetchData(); // Ambil data setiap kali selectedCampaign berubah
   }, [selectedCampaign]);
+
+      // Fetch bootsock data based on selectedObjective
+      useEffect(() => {
+        const fetchBootsockData = async () => {
+            if (!selectedObjective) return; // Don't fetch bootsock data if no objective selected
+
+            if(selectedObjective === 'objective_2b'){
+              try {
+                const res = await fetch("./api/bootsock");
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                const bootsockData = await res.json();
+                setBootsockData(bootsockData);
+                } catch (error) {
+                    setError(error);
+                }
+              return
+            }
+        };
+
+        const fetchInhousewaterData = async () => {
+          if (!selectedObjective) return; // Don't fetch bootsock data if no objective selected
+
+          if (selectedObjective === 'objective_2b') {
+            try {
+              const res = await fetch("./api/inhousewater");
+              if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+              const inhousewaterData = await res.json();
+              setInhousewaterData(inhousewaterData);
+              } catch (error) {
+                  setError(error);
+              }
+            return
+          }
+        };
+
+        const fetchSoidData = async () => {
+          if (!selectedObjective) return;
+
+          if (selectedObjective === 'objective_2b') {
+            try {
+              const res = await fetch("./api/soil");
+              if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+              const soilData = await res.json();
+              setSoilData(soilData);
+              } catch {
+                setError(error);
+              }
+            return
+          }
+        };
+
+        const fetchWaterData = async () => {
+          if (!selectedObjective) return;
+
+          if (selectedObjective === 'objective_2b') {
+            try {
+              const res = await fetch("./api/water");
+              if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+              const waterData = await res.json();
+              setWaterData(waterData);
+              } catch {
+                setError(error);
+              }
+            return
+          }
+        };
+
+        const fetchWellData = async () => {
+          if (!selectedObjective) return;
+
+          if (selectedObjective === 'objective_2b') {
+            try {
+              const res = await fetch("./api/well");
+              if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+              const wellData = await res.json();
+              setWellData(wellData);
+              } catch {
+                setError(error);
+              }
+            return
+          }
+        };
+
+        fetchWellData();
+        fetchWaterData();
+        fetchSoidData();
+        fetchInhousewaterData();
+        fetchBootsockData(); // Fetch bootsock data when selectedObjective changes
+    }, [selectedObjective]);
   
 
     // Fungsi untuk menangani perubahan pada center dan zoom
@@ -149,6 +283,145 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
             return null;
         }
     };
+
+    const convertToBootsockGeoJSON = (bootsock) => {
+      try {
+          const geoJsonData = JSON.parse(bootsock.geom);
+          if (geoJsonData.type === 'MultiLineString') {
+              geoJsonData.coordinates = geoJsonData.coordinates.map(line =>
+                  line.map(coord => {
+                      const converted = proj4(selectedCountry.utmprojection, coord);
+                      return converted;
+                  })
+              ); 
+          }
+          return geoJsonData;
+      } catch (error) {
+          console.error('Error parsing Bootsock GeoJSON:', error, bootsock.geom);
+          return null;
+      }
+    };
+
+    const convertToInhousewaterGeoJSON = (inhousewater) => {
+      try {
+          const geoJsonData = JSON.parse(inhousewater.geom);
+          
+          // Cek jika tipe geometrinya adalah Point
+          if (geoJsonData.type === 'Point') {
+              // Proses koordinat untuk Point
+              const [longitude, latitude] = geoJsonData.coordinates;
+              const convertedCoordinates = proj4(selectedCountry.utmprojection, [longitude, latitude]);
+              geoJsonData.coordinates = convertedCoordinates;
+          }
+          
+          // Jika geom adalah MultiLineString, proses seperti sebelumnya
+          else if (geoJsonData.type === 'MultiLineString') {
+              geoJsonData.coordinates = geoJsonData.coordinates.map(line =>
+                  line.map(coord => {
+                      const converted = proj4(selectedCountry.utmprojection, coord);
+                      return converted;
+                  })
+              );
+          }
+
+          return geoJsonData;
+
+      } catch (error) {
+          console.error('Error parsing Inhousewater GeoJSON:', error, inhousewater.geom);
+          return null;
+      }
+    };
+
+    const convertToSoilGeoJSON = (soil) => {
+      try {
+          const geoJsonData = JSON.parse(soil.geom);
+          
+          // Cek jika tipe geometrinya adalah Point
+          if (geoJsonData.type === 'Point') {
+              // Proses koordinat untuk Point
+              const [longitude, latitude] = geoJsonData.coordinates;
+              const convertedCoordinates = proj4(selectedCountry.utmprojection, [longitude, latitude]);
+              geoJsonData.coordinates = convertedCoordinates;
+          }
+          
+          // Jika geom adalah MultiLineString, proses seperti sebelumnya
+          else if (geoJsonData.type === 'MultiLineString') {
+              geoJsonData.coordinates = geoJsonData.coordinates.map(line =>
+                  line.map(coord => {
+                      const converted = proj4(selectedCountry.utmprojection, coord);
+                      return converted;
+                  })
+              );
+          }
+
+          return geoJsonData;
+
+      } catch (error) {
+          console.error('Error parsing soil GeoJSON:', error, soil.geom);
+          return null;
+      }
+    };
+
+    const convertToWaterGeoJSON = (water) => {
+      try {
+          const geoJsonData = JSON.parse(water.geom);
+          
+          // Cek jika tipe geometrinya adalah Point
+          if (geoJsonData.type === 'Point') {
+              // Proses koordinat untuk Point
+              const [longitude, latitude] = geoJsonData.coordinates;
+              const convertedCoordinates = proj4(selectedCountry.utmprojection, [longitude, latitude]);
+              geoJsonData.coordinates = convertedCoordinates;
+          }
+          
+          // Jika geom adalah MultiLineString, proses seperti sebelumnya
+          else if (geoJsonData.type === 'MultiLineString') {
+              geoJsonData.coordinates = geoJsonData.coordinates.map(line =>
+                  line.map(coord => {
+                      const converted = proj4(selectedCountry.utmprojection, coord);
+                      return converted;
+                  })
+              );
+          }
+
+          return geoJsonData;
+
+      } catch (error) {
+          console.error('Error parsing water GeoJSON:', error, water.geom);
+          return null;
+      }
+    };
+
+    const convertToWellGeoJSON = (well) => {
+      try {
+          const geoJsonData = JSON.parse(well.geom);
+          
+          // Cek jika tipe geometrinya adalah Point
+          if (geoJsonData.type === 'Point') {
+              // Proses koordinat untuk Point
+              const [longitude, latitude] = geoJsonData.coordinates;
+              const convertedCoordinates = proj4(selectedCountry.utmprojection, [longitude, latitude]);
+              geoJsonData.coordinates = convertedCoordinates;
+          }
+          
+          // Jika geom adalah MultiLineString, proses seperti sebelumnya
+          else if (geoJsonData.type === 'MultiLineString') {
+              geoJsonData.coordinates = geoJsonData.coordinates.map(line =>
+                  line.map(coord => {
+                      const converted = proj4(selectedCountry.utmprojection, coord);
+                      return converted;
+                  })
+              );
+          }
+
+          return geoJsonData;
+
+      } catch (error) {
+          console.error('Error parsing well GeoJSON:', error, well.geom);
+          return null;
+      }
+    };
+
     
 
     const calculateCentroid = (coordinates) => {
@@ -222,7 +495,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
           return null;
         })
         .filter(item => item !== null);
-    }, [data, selectedStatus]);
+    }, [data, selectedStatus, selectedCampaign, selectedObjective]);
     
     const boundaryGeoJson = useMemo(() => {
         return boundaryData.map((boundary) => {
@@ -251,6 +524,80 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
         return null;
         }).filter(access => access !== null);
     }, [roadAccessData]);
+
+    const bootscokGeoJson = useMemo(() => {
+      return bootsockData.map((bootsock) => {
+      if (bootsock.geom) {
+          const geoJsonData = convertToBootsockGeoJSON(bootsock);
+          return {
+          geoJsonData,
+          gid: bootsock.gid,
+          township: bootsock.township,
+          };
+      }
+      return null;
+      }).filter(bootsock => bootsock !== null);
+  }, [bootsockData]);
+
+  const inhousewaterGeoJson = useMemo(() => {
+    return inhousewaterData.map((inhousewater) => {
+    if (inhousewater.geom) {
+        const geoJsonData = convertToInhousewaterGeoJSON(inhousewater);
+        return {
+        geoJsonData,
+        gid: inhousewater.gid,
+        township: inhousewater.township,
+        };
+    }
+    return null;
+    }).filter(inhousewater => inhousewater !== null);
+  }, [inhousewaterData]);
+
+  const soilGeoJson = useMemo(() => {
+    return soilData.map((soil) => {
+      if (soil.geom) {
+        const geoJsonData = convertToSoilGeoJSON(soil);
+        return {
+          geoJsonData,
+          gid: soil.gid,
+          township: soil.township,
+        };
+      }
+      return null;
+    }).filter(soil => soil !== null);
+  }, [soilData]);
+
+  const waterGeoJson = useMemo(() => {
+    return waterData.map((water) => {
+      if (water.geom) {
+        const geoJsonData = convertToWaterGeoJSON(water);
+        return {
+          geoJsonData,
+          gid: water.gid,
+          id: water.id,
+          date: water.date,
+          township: water.township,
+        };
+      }
+      return null;
+    }).filter(water => water !== null);
+  }, [waterData]);
+
+  const wellGeoJson = useMemo(() => {
+    return wellData.map((well) => {
+      if (well.geom) {
+        const geoJsonData = convertToWellGeoJSON(well);
+        return {
+          geoJsonData,
+          gid: well.gid,
+          id: well.id,
+          township: well.township,
+        };
+      }
+      return null;
+    }).filter(well => well !== null);
+  }, [wellData]);
+
 
     console.log('data center', center);
     console.log('data zoom', zoom);
@@ -383,6 +730,148 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
                 />
             </React.Fragment>
             ))}
+
+            {/* Menampilkan MultiLineString */}
+            {bootscokGeoJson.map(({ geoJsonData, gid, township }) => (
+            <React.Fragment key={gid}>
+                <GeoJSON
+                    data={geoJsonData}
+                    style={() => ({
+                        color: '#FF067F',  // Garis berwarna tomato
+                        weight: 3,
+                        opacity: 1,
+                    })}
+                    onEachFeature={(feature, layer) => {
+                        layer.on({
+                        mouseover: () => {
+                            layer.bindPopup(`
+                            <h3>GID: ${gid}</h3>
+                            <ul>
+                                <li>TOWNSHIP: ${township}</li>
+                            </ul>
+                            `).openPopup();
+                        },
+                        mouseout: () => {
+                            layer.closePopup();
+                        } 
+                        });
+                    }}              
+                />
+            </React.Fragment>
+            ))}
+
+          {/* Menampilkan Point */}
+          {inhousewaterGeoJson.map(({ geoJsonData, gid, township }) => (
+            <React.Fragment key={gid}>
+                <GeoJSON
+                    data={geoJsonData}
+                    pointToLayer={(feature, latlng) => {
+                        // Menggunakan ikon kustom untuk titik
+                        return L.marker(latlng, { icon: inhouseIcon });
+                    }}
+                    onEachFeature={(feature, layer) => {
+                        layer.on({
+                            mouseover: () => {
+                                layer.bindPopup(`
+                                    <h3>GID: ${gid}</h3>
+                                    <ul>
+                                        <li>TOWNSHIP: ${township}</li>
+                                    </ul>
+                                `).openPopup();
+                            },
+                            mouseout: () => {
+                                layer.closePopup();
+                            }
+                        });
+                    }}
+                />
+            </React.Fragment>
+        ))}
+
+        {/* Menampilkan Point */}
+        {soilGeoJson.map(({geoJsonData, gid, township}) => (
+          <React.Fragment key={gid}>
+            <GeoJSON
+              data={geoJsonData}
+              pointToLayer={(feature, latlng) => {
+                return L.marker(latlng, { icon: soilIcon});
+              }}
+              onEachFeature={(feature, layer) => {
+                layer.on({
+                  mousemove: () => {
+                    layer.bindPopup(`
+                        <h3>GID: ${gid}</h3>
+                        <ul>
+                          <li>TOWNSHIP: ${township}</li>
+                        </ul>
+                      `).openPopup();
+                  },
+                  mouseout: () => {
+                    layer.closePopup();
+                  }
+                });
+              }}
+            />
+          </React.Fragment>
+        ))}
+
+        {/* Menampilkan Point */}
+        {waterGeoJson.map(({geoJsonData, gid, id, date, township}) => (
+          <React.Fragment key={gid}>
+            <GeoJSON
+              data={geoJsonData}
+              pointToLayer={(feature, latlng) => {
+                return L.marker(latlng, { icon: waterIcon});
+              }}
+              onEachFeature={(feature, layer) => {
+                layer.on({
+                  mousemove: () => {
+                    layer.bindPopup(`
+                        <h3>GID: ${gid}</h3>
+                        <h3>ID: ${id}</h3>
+                        <ul>
+                          <li>DATE: ${date}</li>
+                          <li>TOWNSHIP: ${township}</li>
+                        </ul>
+                      `).openPopup();
+                  },
+                  mouseout: () => {
+                    layer.closePopup();
+                  }
+                });
+              }}
+            />
+          </React.Fragment>
+        ))}
+
+        {/* Menampilkan Point */}
+        {wellGeoJson.map(({geoJsonData, gid, id, township}) => (
+          <React.Fragment key={gid}>
+            <GeoJSON
+              data={geoJsonData}
+              pointToLayer={(feature, latlng) => {
+                return L.marker(latlng, { icon: wellIcon});
+              }}
+              onEachFeature={(feature, layer) => {
+                layer.on({
+                  mousemove: () => {
+                    layer.bindPopup(`
+                        <h3>GID: ${gid}</h3>
+                        <h3>ID: ${id}</h3>
+                        <ul>
+                          <li>TOWNSHIP: ${township}</li>
+                        </ul>
+                      `).openPopup();
+                  },
+                  mouseout: () => {
+                    layer.closePopup();
+                  }
+                });
+              }}
+            />
+          </React.Fragment>
+        ))}
+
       </MapContainer>
     </div>
   );
