@@ -18,6 +18,7 @@ module.exports = {
         underconstruction: "#BFBFBF",
         demolished: "#FF5050",
         vacant: "#FFD966",
+        rundown: "#997C70",
 
       },
     },

@@ -35,7 +35,7 @@ function RightSidebar({ selectedSettlement1 }) {
         />
       </div>
 
-      <div className="p-4 w-64">
+      <div className="p-4 w-64 -mt-4">
         {/* Teks terpotong dengan elipsis */}
         <div className="-mt-12">
           <p className="text-2xl font-bold truncate max-w-full uppercase w-full">
@@ -148,11 +148,14 @@ function RightSidebar({ selectedSettlement1 }) {
                   <div className="w-10 h-4 bg-vacant mr-2 rounded-sm"></div>
                   <span className="px-4 text-gray-600 text-xs">Vacant</span>
                 </div>
-
+                <div className="flex items-center mt-4 ml-1">
+                  <div className="w-10 h-4 bg-rundown mr-2 rounded-sm"></div>
+                  <span className="px-4 text-gray-600 text-xs">Rundown</span>
+                </div>
               </div>
               <div className="mb-4">
                 {/* Menambahkan Tanggal */}
-                <div className="mt-10 text-md text-gray-600 font-bold">
+                <div className="mt-10 text-sm text-gray-600 font-bold">
                   <p className="tracking-wide">{currentDate}</p> {/* Menampilkan tanggal dalam format yang diinginkan */}
                 </div>
               </div>
