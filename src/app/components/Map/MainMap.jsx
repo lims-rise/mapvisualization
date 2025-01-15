@@ -40,30 +40,61 @@ const Spinner = styled.div`
 const inhouseIcon = new L.Icon({
   iconUrl: '/icons/inhouse.png', // Path relatif ke public/ // Ganti dengan path ke gambar atau ikon Anda
   iconSize: [32, 32], // Ukuran ikon (lebar, tinggi)
-  iconAnchor: [16, 32], // Titik anchor (tempat marker akan ditempatkan di peta)
+  iconAnchor: [16, 16], // Titik anchor (tempat marker akan ditempatkan di peta)
   popupAnchor: [0, -32], // Titik popup terkait dengan ikon (jarak dari ikon)
 });
 
 const soilIcon = new L.Icon({
-  iconUrl: '/icons/soil.png', // Path relatif ke public/ // Ganti dengan path ke gambar atau ikon Anda
-  iconSize: [32, 32], // Ukuran ikon (lebar, tinggi)
-  iconAnchor: [16, 32], // Titik anchor (tempat marker akan ditempatkan di peta)
-  popupAnchor: [0, -32], // Titik popup terkait dengan ikon (jarak dari ikon)
+  iconUrl: '/icons/soil.png',
+  iconSize: [32, 32], 
+  iconAnchor: [16, 16],
+  popupAnchor: [0, -32],
 });
 
 const waterIcon = new L.Icon({
-  iconUrl: '/icons/water.png', // Path relatif ke public/ // Ganti dengan path ke gambar atau ikon Anda
-  iconSize: [32, 32], // Ukuran ikon (lebar, tinggi)
-  iconAnchor: [16, 32], // Titik anchor (tempat marker akan ditempatkan di peta)
-  popupAnchor: [0, -32], // Titik popup terkait dengan ikon (jarak dari ikon)
+  iconUrl: '/icons/water.png', 
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+  popupAnchor: [0, -32],
 });
 
 const wellIcon = new L.Icon({
-  iconUrl: '/icons/well.png', // Path relatif ke public/ // Ganti dengan path ke gambar atau ikon Anda
-  iconSize: [32, 32], // Ukuran ikon (lebar, tinggi)
-  iconAnchor: [16, 32], // Titik anchor (tempat marker akan ditempatkan di peta)
-  popupAnchor: [0, -32], // Titik popup terkait dengan ikon (jarak dari ikon)
+  iconUrl: '/icons/well.png',
+  iconSize: [32, 32], 
+  iconAnchor: [16, 16],
+  popupAnchor: [0, -32],
 });
+
+const thermochronIcon = new L.Icon({
+  iconUrl: '/icons/thermochron.png',
+  iconSize: [20, 40], 
+  iconAnchor: [10, 20],
+  popupAnchor: [0, -32], 
+});
+
+const hygrochronIcon = new L.Icon({
+  iconUrl: '/icons/hygrochron.png',
+  iconSize: [25, 25],
+  iconAnchor: [12.5, 12.5], 
+  popupAnchor: [0, -32], 
+});
+
+const raingaugeIcon = new L.Icon({
+  iconUrl: '/icons/raingauge.png',
+  iconSize: [35, 35], 
+  iconAnchor: [17.5, 17.5], 
+  popupAnchor: [0, -32], 
+});
+
+const defaultIcon = new L.Icon({
+  iconUrl: '/icons/well.png',
+  iconSize: [32, 32], 
+  iconAnchor: [12, 12],
+  popupAnchor: [0, -32],
+});
+
+
+
 
 
 const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, selectedStatus, selectedObjective }) => {
@@ -75,6 +106,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
     const [soilData, setSoilData] = useState([]);
     const [waterData, setWaterData] = useState([]);
     const [wellData, setWellData] = useState([]);
+    const [equipmentData, setEquipmentData] = useState([]);
     const [center, setCenter] = useState([-5.7535389, 157.0943453]);
     const [zoom, setZoom] = useState(4); // default zoom level
     const mapRef = useRef(null); // Reference to the map
@@ -84,6 +116,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
     const utmProjection = "EPSG:4326";
 
     console.log('selectedObjective', selectedObjective);
+    console.log('equipmentData', equipmentData);
 
     useEffect(() => {
         console.log('datanya peta', selectedCountry)
@@ -176,9 +209,42 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
 
       // Fetch bootsock data based on selectedObjective
       
+      // useEffect(() => {
+      //   const fetchEquipmentData = async () => {
+      //     if (!selectedObjective) return; // Don't fetch bootsock data if no objective selected
+
+      //     if(selectedObjective === 'objective_2'){
+      //       try {
+      //         let urlEquipment = "./api/equipmento2a";
+      //         const queryParams = new URLSearchParams();
+  
+      //         if (selectedCountry && selectedCountry.id_country) {
+      //           queryParams.append('id_country', selectedCountry.id_country);
+      //         }
+              
+      //         if (queryParams.toString()) {
+      //           urlEquipment += `?${queryParams.toString()}`;
+      //         }
+  
+      //         // Ambil data equipment (Point ) dari API tambahan
+      //         const equipmentRes = await fetch(urlEquipment);
+      //         if (!equipmentRes.ok) {
+      //           throw new Error(`HTTP error! status: ${equipmentRes.status}`);
+      //         }
+      //         const equipmentData = await equipmentRes.json();
+      //         setEquipmentData(equipmentData);
+      //       } catch (error) {
+      //         setError(error);
+      //       }
+      //     }
+      //   }
+
+      //   fetchEquipmentData();
+      // },[selectedCountry])
+
       useEffect(() => {
         const fetchData = async () => {
-          if (!selectedCampaign || selectedCampaign.length === 0) {
+          if (!selectedCampaign ||  !selectedObjective || selectedCampaign.length === 0) {
             console.log("No campaign selected, skipping data fetch.");
             return; // Jika tidak ada kampanye yang dipilih, hentikan proses fetch
           }
@@ -198,6 +264,10 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
             
             if (selectedCountry && selectedCountry.prefix) {
               queryParams.append('country', selectedCountry.prefix);
+            }
+
+            if (selectedObjective) {
+              queryParams.append('objective', selectedObjective);
             }
             
             if (queryParams.toString()) {
@@ -229,7 +299,6 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
             const boundaryData = await boundaryRes.json();
             setBoundaryData(boundaryData);
             
-        
             // Ambil data road_access (MultiLineString) dari API tambahan
             const roadAccessRes = await fetch("./api/access");
             if (!roadAccessRes.ok) {
@@ -237,110 +306,194 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
             }
             const roadAccessData = await roadAccessRes.json();
             setRoadAccessData(roadAccessData);
-            
+
           } catch (error) {
             setError(error);
           }
         };
       
         fetchData(); // Ambil data setiap kali selectedCampaign atau selectedCountry berubah
-      }, [selectedCampaign, selectedCountry]);
+      }, [selectedCampaign, selectedCountry, selectedObjective]);
+
       
       
-      useEffect(() => {
-        const fetchBootsockData = async () => {
-            if (!selectedObjective) return; // Don't fetch bootsock data if no objective selected
+    //   useEffect(() => {
 
-            if(selectedObjective === 'objective_2b'){
-              try {
-                const res = await fetch("./api/bootsock");
-                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-                const bootsockData = await res.json();
-                setBootsockData(bootsockData);
-                } catch (error) {
-                    setError(error);
-                }
-              return
-            }
-        };
+    //     const fetchEquipmentData = async () => {
+    //       if (!selectedObjective) return; // Don't fetch bootsock data if no objective selected
 
-        const fetchInhousewaterData = async () => {
-          if (!selectedObjective) return; // Don't fetch bootsock data if no objective selected
+    //       if(selectedObjective === 'objective_2a'){
+    //         try {
+    //           const res = await fetch("./api/equipmento2a");
+    //           if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    //           const equipmentData = await res.json();
+    //           setEquipmentData(equipmentData);
+    //           } catch (error) {
+    //               setError(error);
+    //           }
+    //         return
+    //       }
+    //     };
 
-          if (selectedObjective === 'objective_2b') {
-            try {
-              const res = await fetch("./api/inhousewater");
-              if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-              const inhousewaterData = await res.json();
-              setInhousewaterData(inhousewaterData);
-              } catch (error) {
-                  setError(error);
-              }
-            return
+    //     const fetchBootsockData = async () => {
+    //         if (!selectedObjective) return; // Don't fetch bootsock data if no objective selected
+
+    //         if(selectedObjective === 'objective_2b'){
+    //           try {
+    //             const res = await fetch("./api/bootsock");
+    //             if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    //             const bootsockData = await res.json();
+    //             setBootsockData(bootsockData);
+    //             } catch (error) {
+    //                 setError(error);
+    //             }
+    //           return
+    //         }
+    //     };
+
+    //     const fetchInhousewaterData = async () => {
+    //       if (!selectedObjective) return; // Don't fetch bootsock data if no objective selected
+
+    //       if (selectedObjective === 'objective_2b') {
+    //         try {
+    //           const res = await fetch("./api/inhousewater");
+    //           if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    //           const inhousewaterData = await res.json();
+    //           setInhousewaterData(inhousewaterData);
+    //           } catch (error) {
+    //               setError(error);
+    //           }
+    //         return
+    //       }
+    //     };
+
+    //     const fetchSoidData = async () => {
+    //       if (!selectedObjective) return;
+
+    //       if (selectedObjective === 'objective_2b') {
+    //         try {
+    //           const res = await fetch("./api/soil");
+    //           if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    //           const soilData = await res.json();
+    //           setSoilData(soilData);
+    //           } catch {
+    //             setError(error);
+    //           }
+    //         return
+    //       }
+    //     };
+
+    //     const fetchWaterData = async () => {
+    //       if (!selectedObjective) return;
+
+    //       if (selectedObjective === 'objective_2b') {
+    //         try {
+    //           const res = await fetch("./api/water");
+    //           if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    //           const waterData = await res.json();
+    //           setWaterData(waterData);
+    //           } catch {
+    //             setError(error);
+    //           }
+    //         return
+    //       }
+    //     };
+
+    //     const fetchWellData = async () => {
+    //       if (!selectedObjective) return;
+
+    //       if (selectedObjective === 'objective_2b') {
+    //         try {
+    //           const res = await fetch("./api/well");
+    //           if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    //           const wellData = await res.json();
+    //           setWellData(wellData);
+    //           } catch {
+    //             setError(error);
+    //           }
+    //         return
+    //       }
+    //     };
+
+    //     fetchWellData();
+    //     fetchWaterData();
+    //     fetchSoidData();
+    //     fetchInhousewaterData();
+    //     fetchBootsockData(); // Fetch bootsock data when selectedObjective changes
+    //     fetchEquipmentData();
+    // }, [error, selectedObjective]);
+
+    useEffect(() => {
+      // Reset data setiap kali objective berubah
+      setEquipmentData([]);
+      setInhousewaterData([]);
+      setSoilData([]);
+      setWaterData([]);
+      setWellData([]);
+      setBootsockData([]);
+    
+      setLoading(true);
+    
+      // Fetch data baru berdasarkan objective
+      const fetchData = async () => {
+        if (!selectedObjective) return;
+    
+        try {
+          if (selectedObjective === 'objective_2a') {
+            const resEquipment = await fetch("/api/equipmento2a");
+            const equipment = await resEquipment.json();
+            setEquipmentData(equipment);
+          } else if (selectedObjective === 'objective_2b') {
+            const resBootsock = await fetch("/api/bootsock");
+            const bootsock = await resBootsock.json();
+            setBootsockData(bootsock);
+            
+            const resInhousewater = await fetch("/api/inhousewater");
+            const inhousewater = await resInhousewater.json();
+            setInhousewaterData(inhousewater);
+            
+            const resSoil = await fetch("/api/soil");
+            const soil = await resSoil.json();
+            setSoilData(soil);
+    
+            const resWater = await fetch("/api/water");
+            const water = await resWater.json();
+            setWaterData(water);
+    
+            const resWell = await fetch("/api/well");
+            const well = await resWell.json();
+            setWellData(well);
           }
-        };
-
-        const fetchSoidData = async () => {
-          if (!selectedObjective) return;
-
-          if (selectedObjective === 'objective_2b') {
-            try {
-              const res = await fetch("./api/soil");
-              if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-              const soilData = await res.json();
-              setSoilData(soilData);
-              } catch {
-                setError(error);
-              }
-            return
-          }
-        };
-
-        const fetchWaterData = async () => {
-          if (!selectedObjective) return;
-
-          if (selectedObjective === 'objective_2b') {
-            try {
-              const res = await fetch("./api/water");
-              if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-              const waterData = await res.json();
-              setWaterData(waterData);
-              } catch {
-                setError(error);
-              }
-            return
-          }
-        };
-
-        const fetchWellData = async () => {
-          if (!selectedObjective) return;
-
-          if (selectedObjective === 'objective_2b') {
-            try {
-              const res = await fetch("./api/well");
-              if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-              const wellData = await res.json();
-              setWellData(wellData);
-              } catch {
-                setError(error);
-              }
-            return
-          }
-        };
-
-        fetchWellData();
-        fetchWaterData();
-        fetchSoidData();
-        fetchInhousewaterData();
-        fetchBootsockData(); // Fetch bootsock data when selectedObjective changes
+        } catch (error) {
+          setError(error);
+        } finally {
+          setLoading(false);
+        }
+      };
+    
+      fetchData();
     }, [selectedObjective]);
   
 
-    // Fungsi untuk menangani perubahan pada center dan zoom
-    // const handleViewportChange = (viewport) => {
-    //     setCenter(viewport.center);  // Update center peta
-    //     setZoom(viewport.zoom);      // Update zoom peta
-    // };
+    const convertToEquipmentGeoJSON = (equipment) => {
+      try {
+          const geoJsonData = JSON.parse(equipment.geom);
+          
+          // Cek jika tipe geometrinya adalah Point
+          if (geoJsonData.type === 'Point') {
+              // Proses koordinat untuk Point
+              const [longitude, latitude] = geoJsonData.coordinates;
+              const convertedCoordinates = proj4(selectedCountry.utmprojection, [longitude, latitude]);
+              geoJsonData.coordinates = convertedCoordinates;
+          }
+
+          return geoJsonData;
+
+      } catch (error) {
+          console.error('Error parsing equipment GeoJSON:', error, equipment.geom);
+          return null;
+      }
+    };
 
     const convertToGeoJSON = (item) => {
         try {
@@ -571,6 +724,10 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
             return '#FFD966';
         case 'RunDown':
             return '#997C70';
+        case 'RiseHouse':
+            return '#A294F9';
+        case 'Replace':
+              return '#F29F58';
         default:
             return '#FFD966';
         }
@@ -716,6 +873,27 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
       return null;
     }).filter(well => well !== null);
   }, [wellData]);
+
+  const equipmentGeoJson = useMemo(() => {
+    return equipmentData.map((equipment) => {
+      if (equipment.geom) {
+        const geoJsonData = convertToEquipmentGeoJSON(equipment);
+        return {
+          geoJsonData,
+          gid: equipment.gid,
+          name: equipment.name,
+          pointid: equipment.pointid,
+          activedate: equipment.activedate,
+          inactiveda: equipment.inactiveda,
+          equipment_ : equipment.equipment_,
+          barcode : equipment.barcode,
+          notes : equipment.notes,
+
+        };
+      }
+      return null;
+    }).filter(equipment => equipment !== null);
+  }, [equipmentData]);
 
 
     console.log('data center', center);
@@ -1024,6 +1202,53 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
               />
             </React.Fragment>
           ))}
+
+
+          {/* Menampilkan Point */}
+          {equipmentGeoJson.map(({geoJsonData, gid, name, pointid, equipment_, barcode, inactiveda, activedate, notes}) => (
+            <React.Fragment key={gid}>
+              <GeoJSON
+                data={geoJsonData}
+                pointToLayer={(feature, latlng) => {
+                  // Tentukan ikon berdasarkan nilai 'equipment_'
+                  let icon;
+                  if (equipment_ === 'Hygrochron') {
+                    icon = hygrochronIcon;
+                  } else if (equipment_ === 'Thermochron') {
+                    icon = thermochronIcon;
+                  } else if (equipment_ === 'Rain gauge') {
+                    icon = raingaugeIcon;
+                  } else {
+                    icon = defaultIcon;  // Ganti dengan ikon default jika diperlukan
+                  }
+
+                  return L.marker(latlng, { icon });
+                }}
+                onEachFeature={(feature, layer) => {
+                  layer.on({
+                    mousemove: () => {
+                      layer.bindPopup(`
+                        <ul>
+                          <li><strong>GID:</strong> ${gid}</li>
+                          <li><strong>POINTID:</strong> ${pointid}</li>
+                          <li><strong>BARCODE:</strong> ${barcode}</li>
+                          <li><strong>NAME:</strong> ${name}</li>
+                          <li><strong>EQUIPMENT:</strong> ${equipment_}</li>
+                          <li><strong>NOTES:</strong> ${notes}</li>
+                          <li><strong>ACTIVE DATE:</strong> ${activedate}</li>
+                           <li><strong>INACTIVE DATE:</strong> ${inactiveda}</li>
+                        </ul>
+                      `).openPopup();
+                    },
+                    mouseout: () => {
+                      layer.closePopup();
+                    }
+                  });
+                }}
+              />
+            </React.Fragment>
+          ))}
+
 
           </MapContainer>
     </div>
