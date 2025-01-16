@@ -962,7 +962,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
             <React.Fragment key={gid}>
               {/* GeoJSON Layer */}
               <GeoJSON
-                key={gid}
+                key={`${gid}-${status}`}
                 data={geoJsonData}
                 style={() => ({
                   fillColor: getColorByStatus(status),  // Menentukan warna berdasarkan status
