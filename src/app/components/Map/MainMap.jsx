@@ -475,6 +475,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
     }, [selectedObjective]);
   
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const convertToEquipmentGeoJSON = (equipment) => {
       try {
           const geoJsonData = JSON.parse(equipment.geom);
@@ -495,6 +496,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
       }
     };
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const convertToGeoJSON = (item) => {
         try {
         const geoJsonData = JSON.parse(item.geom);
@@ -516,6 +518,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
     };
 
     // Fungsi untuk memetakan garis-garis batas (MultiLineString)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const convertToBoundaryGeoJSON = (boundary) => {
         try {
           const geoJsonData = JSON.parse(boundary.geom);
@@ -534,6 +537,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
         }
     };
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const convertToAccessGeoJSON = (access) => {
         try {
             const geoJsonData = JSON.parse(access.geom);
@@ -552,6 +556,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
         }
     };
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const convertToBootsockGeoJSON = (bootsock) => {
       try {
           const geoJsonData = JSON.parse(bootsock.geom);
@@ -570,6 +575,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
       }
     };
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const convertToInhousewaterGeoJSON = (inhousewater) => {
       try {
           const geoJsonData = JSON.parse(inhousewater.geom);
@@ -600,6 +606,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
       }
     };
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const convertToSoilGeoJSON = (soil) => {
       try {
           const geoJsonData = JSON.parse(soil.geom);
@@ -630,6 +637,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
       }
     };
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const convertToWaterGeoJSON = (water) => {
       try {
           const geoJsonData = JSON.parse(water.geom);
@@ -660,6 +668,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
       }
     };
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const convertToWellGeoJSON = (well) => {
       try {
           const geoJsonData = JSON.parse(well.geom);
@@ -771,7 +780,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
           return null;
         })
         .filter(item => item !== null);
-    }, [data, selectedStatus, selectedCampaign, selectedObjective]);
+    }, [data, selectedStatus, selectedCampaign, convertToGeoJSON]);
     
     const boundaryGeoJson = useMemo(() => {
         return boundaryData.map((boundary) => {
@@ -785,7 +794,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
         }
         return null;
         }).filter(boundary => boundary !== null);
-    }, [boundaryData]);
+    }, [boundaryData, convertToBoundaryGeoJSON]);
 
     const accessGeoJson = useMemo(() => {
         return roadAccessData.map((access) => {
@@ -799,7 +808,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
         }
         return null;
         }).filter(access => access !== null);
-    }, [roadAccessData]);
+    }, [convertToAccessGeoJSON, roadAccessData]);
 
     const bootscokGeoJson = useMemo(() => {
       return bootsockData.map((bootsock) => {
@@ -813,7 +822,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
       }
       return null;
       }).filter(bootsock => bootsock !== null);
-  }, [bootsockData]);
+  }, [bootsockData, convertToBootsockGeoJSON]);
 
   const inhousewaterGeoJson = useMemo(() => {
     return inhousewaterData.map((inhousewater) => {
@@ -827,7 +836,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
     }
     return null;
     }).filter(inhousewater => inhousewater !== null);
-  }, [inhousewaterData]);
+  }, [convertToInhousewaterGeoJSON, inhousewaterData]);
 
   const soilGeoJson = useMemo(() => {
     return soilData.map((soil) => {
@@ -841,7 +850,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
       }
       return null;
     }).filter(soil => soil !== null);
-  }, [soilData]);
+  }, [convertToSoilGeoJSON, soilData]);
 
   const waterGeoJson = useMemo(() => {
     return waterData.map((water) => {
@@ -857,7 +866,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
       }
       return null;
     }).filter(water => water !== null);
-  }, [waterData]);
+  }, [convertToWaterGeoJSON, waterData]);
 
   const wellGeoJson = useMemo(() => {
     return wellData.map((well) => {
@@ -872,7 +881,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
       }
       return null;
     }).filter(well => well !== null);
-  }, [wellData]);
+  }, [convertToWellGeoJSON, wellData]);
 
   const equipmentGeoJson = useMemo(() => {
     return equipmentData.map((equipment) => {
@@ -893,7 +902,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
       }
       return null;
     }).filter(equipment => equipment !== null);
-  }, [equipmentData]);
+  }, [convertToEquipmentGeoJSON, equipmentData]);
 
 
     console.log('data center', center);
