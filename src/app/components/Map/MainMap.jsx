@@ -118,20 +118,21 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
     console.log('selectedObjective', selectedObjective);
     console.log('equipmentData', equipmentData);
     console.log('data pusat', data);
-    console.log('active country', selectedCountry);
+
+   
 
     useEffect(() => {
         console.log('datanya peta', selectedCountry)
         if (selectedCountry) {
-            setCenter([selectedCountry.lat, selectedCountry.long]); // Set center based on selected country
-            setZoom(selectedCountry.zoom); // Set zoom based on selected country
+            setCenter([selectedCountry?.lat, selectedCountry?.long]); // Set center based on selected country
+            setZoom(selectedCountry?.zoom); // Set zoom based on selected country
         }
     }, [selectedCountry]); // Re-run when selectedCountry changes
 
     useEffect(() => {
       if (selectedSettlement) {
-        setCenter([selectedSettlement.lat, selectedSettlement.long]); // Set center based on selected country
-        setZoom(selectedSettlement.zoom); // Set zoom based on selected country
+        setCenter([selectedSettlement?.lat, selectedSettlement?.long]); // Set center based on selected country
+        setZoom(selectedSettlement?.zoom); // Set zoom based on selected country
       }
     }, [selectedSettlement]); // Re-run when selectedCountry changes
 
@@ -264,8 +265,8 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
               queryParams.append('campaign', selectedCampaign.join(','));
             }
       
-            if (selectedCountry.prefix) {
-              queryParams.append('country', selectedCountry.prefix); // Gunakan selectedCountry.prefix di sini
+            if (selectedCountry?.prefix) {
+              queryParams.append('country', selectedCountry?.prefix); // Gunakan selectedCountry.prefix di sini
             }
       
             if (selectedObjective) {
@@ -273,7 +274,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
             }
 
             if (selectedSettlement) {
-              queryParams.append('settlement', selectedSettlement.settlement);
+              queryParams.append('settlement', selectedSettlement?.settlement);
             }
       
             if (queryParams.toString()) {
@@ -927,7 +928,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
     setLoading(true); // Mulai loading
     try {
       // Simulasi API fetch berdasarkan filter
-      const response = await fetch(`/api/data?country=${selectedCountry}&campaign=${selectedCampaign}`);
+      const response = await fetch(`/api/data?country=${selectedCountry?.prefix}&campaign=${selectedCampaign}&objective=${selectedObjective}&settlement=${selectedSettlement?.settlement}`);
       const data = await response.json();
       setGeoJsonData(data); // Set data hasil fetch
     } catch (error) {
@@ -935,9 +936,9 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
     } finally {
       setLoading(false); // Selesai loading
     }
-  }, [selectedCountry, selectedCampaign]); // Fetch ulang data saat filter berubah
+  }, [selectedCountry?.prefix, selectedCampaign, selectedObjective, selectedSettlement?.settlement]); // Fetch ulang data saat filter berubah
 
-  // Menggunakan useEffect untuk memanggil fetchData saat filter berubah
+  // // Menggunakan useEffect untuk memanggil fetchData saat filter berubah
   useEffect(() => {
     if (selectedCountry || selectedCampaign || selectedSettlement || selectedStatus || selectedObjective) {
       fetchData(); // Panggil fetchData jika filter berubah
