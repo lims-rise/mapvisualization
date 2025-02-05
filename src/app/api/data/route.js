@@ -1,58 +1,3 @@
-// import { NextResponse } from 'next/server';
-// import { getDbConnection } from '../../../../lib/db';
-
-// export async function GET(request) {
-//   const db = getDbConnection(); // Mendapatkan koneksi dari singleton
-//   const { searchParams } = new URL(request.url);
-//   const selectedCampaign = searchParams.get('campaign');
-//   const selectedCountry = searchParams.get('country');
-  
-//   try {
-//     // Mulai query dasar
-//     let query = db('gdb_rise').select(
-//       'gid',
-//       'id_map',
-//       'id_building',
-//       'hoid',
-//       'houseno',
-//       'settlement',
-//       'status',
-//       'structure',
-//       'country',
-//       'campaign',
-//       'connected',
-//       'note',
-//       db.raw('ST_AsGeoJSON(geom) AS geom')
-//     );
-
-//     // Filter berdasarkan country jika ada
-//     if (selectedCountry) {
-//       query = query.where('country', selectedCountry);
-//     }
-
-//     // Filter berdasarkan campaign jika ada
-//     if (selectedCampaign) {
-//       // Memecah parameter campaign yang dipisahkan koma
-//       const campaignArray = selectedCampaign.split(',').map(campaign => campaign.trim());
-      
-//       // Menggunakan whereIn untuk memfilter beberapa kampanye
-//       query = query.whereIn('campaign', campaignArray);
-//     }
-
-//     // Eksekusi query
-//     const result = await query;
-
-//     // Mengembalikan hasil dalam format JSON
-//     return NextResponse.json(result);
-//   } catch (error) {
-//     console.error('Error fetching data:', error);
-//     // Menangani error dan mengembalikan status 500
-//     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-//   }
-// }
-
-
-
 import { NextResponse } from 'next/server';
 import { getDbConnection } from '../../../../lib/db';
 
@@ -62,6 +7,7 @@ export async function GET(request) {
   const selectedCampaign = searchParams.get('campaign');
   const selectedCountry = searchParams.get('country');
   const selectedObjective = searchParams.get('objective'); // Mendapatkan nilai objective
+  const selectedSettlement = searchParams.get('settlement');
   
   try {
     // Mulai query dasar yang umum
@@ -111,6 +57,10 @@ export async function GET(request) {
         query2 = query2.whereIn('gdb_rise.campaign', campaignArray);
       }
 
+      if (selectedSettlement) {
+        query2 = query2.where('gdb_rise.settlement', selectedSettlement);
+      }
+
       // Eksekusi query2 untuk objective_2a
       const result = await query2;
       return NextResponse.json(result);
@@ -124,6 +74,10 @@ export async function GET(request) {
       if (selectedCampaign) {
         const campaignArray = selectedCampaign.split(',').map(campaign => campaign.trim());
         query = query.whereIn('gdb_rise.campaign', campaignArray);
+      }
+
+      if (selectedSettlement) {
+        query = query.where('gdb_rise.settlement', selectedSettlement);
       }
 
       // Eksekusi query untuk objective_2b
