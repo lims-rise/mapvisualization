@@ -255,37 +255,6 @@ useEffect(() => {
           )}
         </div>
 
-        {/* Filter Settlement */}
-        <div className="mb-6">
-          <label htmlFor="settlement" className="block text-sm font-medium mb-2">Select settlement</label>
-          {isLoadingSettelments ? (
-            <select
-              id="settlement"
-              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="" disabled>No settlements available</option>
-            </select>
-          ) : (
-            <select
-              id="settlement"
-              value={selectedSettlement ? selectedSettlement.settlement : ""}
-              onChange={handleSettlementChange}
-              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="" disabled>Select a settlement...</option>
-              {settlements.length > 0 ? (
-                settlements.map((settlement, index) => (
-                  <option key={index} value={settlement.settlement}>
-                    {settlement.settlement}
-                  </option>
-                ))
-              ) : (
-                <option value="" disabled>No settlements available</option>
-              )}
-            </select>
-          )}
-        </div>
-
         {/* Filter Objective */}
         <div className="mb-6">
           <label htmlFor="objective" className="block text-sm font-medium mb-2">Select Objective</label>
@@ -317,8 +286,40 @@ useEffect(() => {
           )}
         </div>
 
+        {/* Filter Settlement */}
+        <div className="mb-6">
+          <label htmlFor="settlement" className="block text-sm font-medium mb-2">Select settlement</label>
+          {isLoadingSettelments ? (
+            <select
+              id="settlement"
+              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="" disabled>No settlements available</option>
+            </select>
+          ) : (
+            <select
+              id="settlement"
+              value={selectedSettlement ? selectedSettlement.settlement : ""}
+              onChange={handleSettlementChange}
+              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="" disabled>Select a settlement...</option>
+              {settlements.length > 0 ? (
+                settlements.map((settlement, index) => (
+                  <option key={index} value={settlement.settlement}>
+                    {settlement.settlement}
+                  </option>
+                ))
+              ) : (
+                <option value="" disabled>No settlements available</option>
+              )}
+            </select>
+          )}
+        </div>
+
+
 {/* Filter Campaign dan Status muncul setelah memilih objective */}
-{selectedObjective && (selectedObjective.url_name === "objective_2b") && (
+{ selectedSettlement && selectedObjective && (selectedObjective.url_name === "objective_2b") && (
   <>
     {/* Toggle untuk memilih mode filter */}
     <div className="mb-6">
@@ -439,7 +440,7 @@ useEffect(() => {
 )}
 
 {/* Filter Campaign dan Status muncul setelah memilih objective */}
-{selectedObjective && (selectedObjective.url_name === "objective_2a") && (
+{ selectedSettlement && selectedObjective && (selectedObjective.url_name === "objective_2a") && (
   <>
     {/* Toggle untuk memilih mode filter */}
     <div className="mb-6">

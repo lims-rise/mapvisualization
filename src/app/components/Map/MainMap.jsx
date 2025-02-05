@@ -117,6 +117,8 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
 
     console.log('selectedObjective', selectedObjective);
     console.log('equipmentData', equipmentData);
+    console.log('data pusat', data);
+    console.log('active country', selectedCountry);
 
     useEffect(() => {
         console.log('datanya peta', selectedCountry)
@@ -244,36 +246,40 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
 
       useEffect(() => {
         const fetchData = async () => {
-          if (!selectedCampaign ||  !selectedObjective || selectedCampaign.length === 0) {
+          if (!selectedCampaign || !selectedObjective  || !selectedCountry || !selectedSettlement) {
             console.log("No campaign selected, skipping data fetch.");
             return; // Jika tidak ada kampanye yang dipilih, hentikan proses fetch
           }
-          
+      
           try {
             let url = "./api/data";
             let urlBoundary = "./api/boundary";
-            
+      
             // Menambahkan filter kampanye dan negara ke URL jika ada
             const queryParams = new URLSearchParams();
             const queryParams1 = new URLSearchParams();
-            
+      
             // General Data
             if (selectedCampaign.length > 0) {
               queryParams.append('campaign', selectedCampaign.join(','));
             }
-            
-            if (selectedCountry && selectedCountry.prefix) {
-              queryParams.append('country', selectedCountry.prefix);
+      
+            if (selectedCountry.prefix) {
+              queryParams.append('country', selectedCountry.prefix); // Gunakan selectedCountry.prefix di sini
             }
-
+      
             if (selectedObjective) {
               queryParams.append('objective', selectedObjective);
             }
-            
+
+            if (selectedSettlement) {
+              queryParams.append('settlement', selectedSettlement.settlement);
+            }
+      
             if (queryParams.toString()) {
               url += `?${queryParams.toString()}`;
             }
-
+      
             // Mengambil data dari API untuk geojson data (peta bangunan)
             const res = await fetch(url);
             if (!res.ok) {
@@ -281,16 +287,16 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
             }
             const data = await res.json();
             setData(data);
-
-            //Boundary
+      
+            // Boundary
             if (selectedCountry && selectedCountry.id_country) {
               queryParams1.append('id_country', selectedCountry.id_country);
             }
-
+      
             if (queryParams1.toString()) {
               urlBoundary += `?${queryParams1.toString()}`;
             }
-        
+      
             // Ambil data boundary (MultiLineString) dari API tambahan
             const boundaryRes = await fetch(urlBoundary);
             if (!boundaryRes.ok) {
@@ -298,7 +304,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
             }
             const boundaryData = await boundaryRes.json();
             setBoundaryData(boundaryData);
-            
+      
             // Ambil data road_access (MultiLineString) dari API tambahan
             const roadAccessRes = await fetch("./api/access");
             if (!roadAccessRes.ok) {
@@ -306,14 +312,15 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
             }
             const roadAccessData = await roadAccessRes.json();
             setRoadAccessData(roadAccessData);
-
+      
           } catch (error) {
             setError(error);
           }
         };
       
         fetchData(); // Ambil data setiap kali selectedCampaign atau selectedCountry berubah
-      }, [selectedCampaign, selectedCountry, selectedObjective]);
+      }, [selectedCampaign, selectedCountry, selectedObjective, selectedSettlement]);
+      
 
       
       
