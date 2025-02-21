@@ -65,7 +65,7 @@ export async function GET(request) {
       const result = await query2;
       return NextResponse.json(result);
 
-    } else if (selectedObjective === 'objective_2b') {
+    } else if (selectedObjective === 'objective_2b' || selectedObjective === 'objective_3') {
       // Menambahkan filter berdasarkan country dan campaign pada query
       if (selectedCountry) {
         query = query.where('gdb_rise.country', selectedCountry);

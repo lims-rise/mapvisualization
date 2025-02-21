@@ -10,7 +10,7 @@ function Sidebar() {
   const [status, setStatus] = useState([]); // Daftar status
   const [objectives, setObjectives] = useState([]); //Daftar objective
   const [equipments, setEquipments] = useState([]); // Daftar equipment
-  const [selectedCampaign, setSelectedCampaign] = useState([]); // Kampanye yang dipilih
+  const [selectedCampaign, setSelectedCampaign] = useState([0]); // Kampanye yang dipilih
   const [selectedCountry, setSelectedCountry] = useState(null); // Negara yang dipilih
   const [selectedSettlement, setSelectedSettlement] = useState(null); // Settlement yang dipilih
   const [selectedStatus, setSelectedStatus] = useState(null); // Status yang dipilih
@@ -36,23 +36,48 @@ function Sidebar() {
     setSelectedObjective(selectedObj); // Simpan objek lengkap jika perlu
   };
 
+  // const handleCampaignChange = (event) => {
+  //   if (isCheckboxMode) {
+  //     // Ketika menggunakan checkbox, simpan nilai sebagai string
+  //     const campaignValue = event.target.value; // Simpan sebagai string
+  
+  //     // Update state dengan menambahkan atau menghapus campaign dari selectedCampaign
+  //     setSelectedCampaign((prevCampaigns) =>
+  //       prevCampaigns.includes(campaignValue)
+  //         ? prevCampaigns.filter((campaign) => campaign !== campaignValue) // Hapus jika sudah tercentang
+  //         : [...prevCampaigns, campaignValue] // Tambahkan jika belum tercentang
+  //     );
+  //   } else {
+  //     // Ketika menggunakan dropdown (multiple selection), ambil semua opsi yang dipilih
+  //     const campaignValues = Array.from(event.target.selectedOptions, (option) => option.value);
+  //     setSelectedCampaign(campaignValues); // Update state dengan array kampanye yang dipilih
+  //   }
+  // };
+
   const handleCampaignChange = (event) => {
     if (isCheckboxMode) {
       // Ketika menggunakan checkbox, simpan nilai sebagai string
       const campaignValue = event.target.value; // Simpan sebagai string
-  
+      
       // Update state dengan menambahkan atau menghapus campaign dari selectedCampaign
-      setSelectedCampaign((prevCampaigns) =>
-        prevCampaigns.includes(campaignValue)
+      setSelectedCampaign((prevCampaigns) => {
+        const newCampaigns = prevCampaigns.includes(campaignValue)
           ? prevCampaigns.filter((campaign) => campaign !== campaignValue) // Hapus jika sudah tercentang
-          : [...prevCampaigns, campaignValue] // Tambahkan jika belum tercentang
-      );
+          : [...prevCampaigns, campaignValue]; // Tambahkan jika belum tercentang
+  
+        // Pastikan selectedCampaign selalu berupa array string
+        return newCampaigns.length === 0 ? "" : newCampaigns;
+      });
     } else {
       // Ketika menggunakan dropdown (multiple selection), ambil semua opsi yang dipilih
       const campaignValues = Array.from(event.target.selectedOptions, (option) => option.value);
-      setSelectedCampaign(campaignValues); // Update state dengan array kampanye yang dipilih
+  
+      // Update state dengan array kampanye yang dipilih
+      setSelectedCampaign(campaignValues.length === 0 ? "" : campaignValues);
     }
   };
+  
+  
 
   const handleCountryChange = (event) => {
     const countryCode = event.target.value;
@@ -116,6 +141,37 @@ function Sidebar() {
 
     fetchCampaignData();
   }, [selectedCountry]); // Hanya dijalankan setiap kali selectedCountry berubah
+
+  // useEffect(() => {
+  //   const fetchCampaignData = async () => {
+  //     if (!selectedCountry) return;
+  
+  //     try {
+  //       const response = await fetch(`./api/campaign?country=${selectedCountry.prefix}`);
+  //       if (!response.ok) {
+  //         throw new Error(`HTTP error! status: ${response.status}`);
+  //       }
+  //       const campaignData = await response.json();
+  //       console.log('Campaign Data:', campaignData); // Log data kampanye
+  //       setCampaigns(campaignData);
+  //       setIsLoadingCampaigns(false); // Set loading false setelah data kampanye berhasil dimuat
+  
+  //       // Cari campaign dengan nilai terbesar (misalnya, ID terbesar)
+  //       if (campaignData.length > 0) {
+  //         const maxCampaign = campaignData.reduce((max, campaign) => {
+  //           return parseInt(campaign.campaign) > parseInt(max.campaign) ? campaign : max;
+  //         });
+  //         setSelectedCampaign(String(maxCampaign.campaign)); // Set default ke campaign dengan nilai terbesar (misalnya, campaign 18)
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching campaign data:", error);
+  //     }
+  //   };
+  
+  //   fetchCampaignData();
+  // }, [selectedCountry]); // Hanya dijalankan setiap kali selectedCountry berubah
+  
+  
 
   useEffect(() => {
     const fetchSettlementData = async () => {
@@ -205,6 +261,16 @@ useEffect(() => {
   // }, [selectedCountry]);
 
 
+  useEffect(() => {
+    if (campaigns.length > 0) {
+      // Set the selectedCampaign state to the last campaign
+      setSelectedCampaign([String(campaigns[campaigns.length - 1].campaign)]);
+    } else {
+      setSelectedCampaign([]);
+    }
+  }, [campaigns]);
+
+
   // Reset selectedCampaign dan selectedSettlement saat selectedCountry berubah
   useEffect(() => {
     setSelectedCampaign(""); 
@@ -287,247 +353,251 @@ useEffect(() => {
         </div>
 
         {/* Filter Settlement */}
-        <div className="mb-6">
-          <label htmlFor="settlement" className="block text-sm font-medium mb-2">Select settlement</label>
-          {isLoadingSettelments ? (
-            <select
-              id="settlement"
-              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="" disabled>No settlements available</option>
-            </select>
-          ) : (
-            <select
-              id="settlement"
-              value={selectedSettlement ? selectedSettlement.settlement : ""}
-              onChange={handleSettlementChange}
-              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="" disabled>Select a settlement...</option>
-              {settlements.length > 0 ? (
-                settlements.map((settlement, index) => (
-                  <option key={index} value={settlement.settlement}>
-                    {settlement.settlement}
-                  </option>
-                ))
-              ) : (
+        { selectedObjective && (selectedObjective.url_name === "objective_2b" || selectedObjective.url_name === "objective_2a" || selectedObjective.url_name === "objective_3") && (
+          <div className="mb-6">
+            <label htmlFor="settlement" className="block text-sm font-medium mb-2">Select settlement</label>
+            {isLoadingSettelments ? (
+              <select
+                id="settlement"
+                className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+              >
                 <option value="" disabled>No settlements available</option>
+              </select>
+            ) : (
+              <select
+                id="settlement"
+                value={selectedSettlement ? selectedSettlement.settlement : ""}
+                onChange={handleSettlementChange}
+                className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="" disabled>Select a settlement...</option>
+                {settlements.length > 0 ? (
+                  settlements.map((settlement, index) => (
+                    <option key={index} value={settlement.settlement}>
+                      {settlement.settlement}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>No settlements available</option>
+                )}
+              </select>
+            )}
+          </div>
+        )}
+
+
+
+        {/* Filter Campaign dan Status muncul setelah memilih objective */}
+        { selectedSettlement && selectedObjective && (selectedObjective.url_name === "objective_2b" || selectedObjective.url_name === "objective_3") && (
+          <>
+            {/* Toggle untuk memilih mode filter */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-2">Select Filter Mode</label>
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => setIsCheckboxMode(true)}
+                  className={`px-4 py-2 rounded-md ${isCheckboxMode ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300'}`}
+                >
+                  Checkbox
+                </button>
+                <button
+                  onClick={() => setIsCheckboxMode(false)}
+                  className={`px-4 py-2 rounded-md ${!isCheckboxMode ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300'}`}
+                >
+                  Dropdown
+                </button>
+              </div>
+            </div>
+
+            {/* Filter Campaign */}
+            <div className="mb-6">
+              <label htmlFor="campaign" className="block text-sm font-medium mb-2">Select campaign</label>
+              <div>
+                {isLoadingCampaigns ? (
+                  <select
+                    id="campaign"
+                    className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="" disabled>No campaign available</option>
+                  </select>
+                ) : (
+                  isCheckboxMode ? (
+                    <div className="space-y-2">
+                      {campaigns.map((campaign, index) => (
+                        <div
+                          key={index}
+                          className={`flex items-center p-2 rounded-md transition-colors duration-200 ${selectedCampaign.includes(campaign.campaign)
+                            ? 'bg-blue-500 text-white' // Background biru jika dicentang
+                            : 'bg-gray-700 text-gray-300' // Background abu-abu jika tidak dicentang
+                            }`}
+                        >
+                          {/* Checkbox */}
+                          <input
+                            type="checkbox"
+                            id={`campaign-${campaign.campaign}`}
+                            value={String(campaign.campaign)} // pastikan nilai yang dikirim adalah string
+                            checked={selectedCampaign.includes(String(campaign.campaign))} // pastikan perbandingan selalu menggunakan string
+                            onChange={handleCampaignChange} // Menangani perubahan pada checkbox
+                            className="mr-2"
+                          />
+                          {/* Label */}
+                          <label
+                            htmlFor={`campaign-${campaign.campaign}`}
+                            className={`flex-1 ${selectedCampaign.includes(String(campaign.campaign)) ? 'font-semibold' : 'font-normal'}`}
+                          >
+                            {`Campaign ${campaign.campaign}`}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                  <select
+                    id="campaign"
+                    value={selectedCampaign}
+                    onChange={handleCampaignChange}
+                    multiple
+                    className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary overflow-y-auto overflow-x-hidden custom-scrollbar"
+                    style={{ padding: '0.5rem', fontSize: '1rem' }}
+                  >
+                    {campaigns.map((campaign, index) => (
+                      <option
+                        key={index}
+                        value={campaign.campaign}
+                        className="py-2"
+                      >
+                        {`Campaign ${campaign.campaign}`}
+                      </option>
+                    ))}
+                  </select>
+
+                  )
+                )}
+              </div>
+            </div>
+
+            {/* Filter Status */}
+            <div className="mb-6">
+              <label htmlFor="status" className="block text-sm font-medium mb-2">Select status</label>
+              {isLoadingStatus ? (
+                <select
+                  id="status"
+                  className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="" disabled>No status available</option>
+                </select>
+              ) : (
+                <select
+                  id="status"
+                  value={selectedStatus ? selectedStatus : ""}
+                  onChange={handleStatusChange}
+                  className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="" disabled>Select a status</option>
+                  <option value="all">All</option> {/* Opsi All */}
+                  {status.length > 0 ? (
+                    status.map((sts, index) => (
+                      <option key={index} value={sts.status}>
+                        {sts.status}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>No status available</option>
+                  )}
+                </select>
               )}
-            </select>
-          )}
-        </div>
-
-
-{/* Filter Campaign dan Status muncul setelah memilih objective */}
-{ selectedSettlement && selectedObjective && (selectedObjective.url_name === "objective_2b") && (
-  <>
-    {/* Toggle untuk memilih mode filter */}
-    <div className="mb-6">
-      <label className="block text-sm font-medium mb-2">Select Filter Mode</label>
-      <div className="flex space-x-4">
-        <button
-          onClick={() => setIsCheckboxMode(true)}
-          className={`px-4 py-2 rounded-md ${isCheckboxMode ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300'}`}
-        >
-          Checkbox
-        </button>
-        <button
-          onClick={() => setIsCheckboxMode(false)}
-          className={`px-4 py-2 rounded-md ${!isCheckboxMode ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300'}`}
-        >
-          Dropdown
-        </button>
-      </div>
-    </div>
-
-    {/* Filter Campaign */}
-    <div className="mb-6">
-      <label htmlFor="campaign" className="block text-sm font-medium mb-2">Select campaign</label>
-      <div>
-        {isLoadingCampaigns ? (
-          <select
-            id="campaign"
-            className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="" disabled>No campaign available</option>
-          </select>
-        ) : (
-          isCheckboxMode ? (
-            <div className="space-y-2">
-              {campaigns.map((campaign, index) => (
-                <div
-                  key={index}
-                  className={`flex items-center p-2 rounded-md transition-colors duration-200 ${selectedCampaign.includes(campaign.campaign)
-                    ? 'bg-blue-500 text-white' // Background biru jika dicentang
-                    : 'bg-gray-700 text-gray-300' // Background abu-abu jika tidak dicentang
-                    }`}
-                >
-                  {/* Checkbox */}
-                  <input
-                    type="checkbox"
-                    id={`campaign-${campaign.campaign}`}
-                    value={String(campaign.campaign)} // pastikan nilai yang dikirim adalah string
-                    checked={selectedCampaign.includes(String(campaign.campaign))} // pastikan perbandingan selalu menggunakan string
-                    onChange={handleCampaignChange} // Menangani perubahan pada checkbox
-                    className="mr-2"
-                  />
-                  {/* Label */}
-                  <label
-                    htmlFor={`campaign-${campaign.campaign}`}
-                    className={`flex-1 ${selectedCampaign.includes(String(campaign.campaign)) ? 'font-semibold' : 'font-normal'}`}
-                  >
-                    {`Campaign ${campaign.campaign}`}
-                  </label>
-                </div>
-              ))}
             </div>
-          ) : (
-            <select
-              id="campaign"
-              value={selectedCampaign}
-              onChange={handleCampaignChange}
-              multiple
-              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary overflow-y-auto overflow-x-hidden custom-scrollbar"
-              style={{ padding: '0.5rem', fontSize: '1rem' }} // Padding agar elemen lebih nyaman
-            >
-              {campaigns.map((campaign, index) => (
-                <option
-                  key={index}
-                  value={campaign.campaign}
-                  className="py-2" // Tambahkan padding vertikal pada opsi untuk memberikan jarak antar item
-                >
-                  {`Campaign ${campaign.campaign}`}
-                </option>
-              ))}
-            </select>
-          )
+          </>
         )}
-      </div>
-    </div>
 
-    {/* Filter Status */}
-    <div className="mb-6">
-      <label htmlFor="status" className="block text-sm font-medium mb-2">Select status</label>
-      {isLoadingStatus ? (
-        <select
-          id="status"
-          className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <option value="" disabled>No status available</option>
-        </select>
-      ) : (
-        <select
-          id="status"
-          value={selectedStatus ? selectedStatus : ""}
-          onChange={handleStatusChange}
-          className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <option value="" disabled>Select a status</option>
-          <option value="all">All</option> {/* Opsi All */}
-          {status.length > 0 ? (
-            status.map((sts, index) => (
-              <option key={index} value={sts.status}>
-                {sts.status}
-              </option>
-            ))
-          ) : (
-            <option value="" disabled>No status available</option>
-          )}
-        </select>
-      )}
-    </div>
-  </>
-)}
-
-{/* Filter Campaign dan Status muncul setelah memilih objective */}
-{ selectedSettlement && selectedObjective && (selectedObjective.url_name === "objective_2a") && (
-  <>
-    {/* Toggle untuk memilih mode filter */}
-    <div className="mb-6">
-      <label className="block text-sm font-medium mb-2">Select Filter Mode</label>
-      <div className="flex space-x-4">
-        <button
-          onClick={() => setIsCheckboxMode(true)}
-          className={`px-4 py-2 rounded-md ${isCheckboxMode ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300'}`}
-        >
-          Checkbox
-        </button>
-        <button
-          onClick={() => setIsCheckboxMode(false)}
-          className={`px-4 py-2 rounded-md ${!isCheckboxMode ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300'}`}
-        >
-          Dropdown
-        </button>
-      </div>
-    </div>
-
-    {/* Filter Campaign */}
-    <div className="mb-6">
-      <label htmlFor="campaign" className="block text-sm font-medium mb-2">Select campaign</label>
-      <div>
-        {isLoadingCampaigns ? (
-          <select
-            id="campaign"
-            className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="" disabled>No campaign available</option>
-          </select>
-        ) : (
-          isCheckboxMode ? (
-            <div className="space-y-2">
-              {campaigns.map((campaign, index) => (
-                <div
-                  key={index}
-                  className={`flex items-center p-2 rounded-md transition-colors duration-200 ${selectedCampaign.includes(campaign.campaign)
-                    ? 'bg-blue-500 text-white' // Background biru jika dicentang
-                    : 'bg-gray-700 text-gray-300' // Background abu-abu jika tidak dicentang
-                    }`}
+        {/* Filter Campaign dan Status muncul setelah memilih objective */}
+        { selectedSettlement && selectedObjective && (selectedObjective.url_name === "objective_2a") && (
+          <>
+            {/* Toggle untuk memilih mode filter */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-2">Select Filter Mode</label>
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => setIsCheckboxMode(true)}
+                  className={`px-4 py-2 rounded-md ${isCheckboxMode ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300'}`}
                 >
-                  {/* Checkbox */}
-                  <input
-                    type="checkbox"
-                    id={`campaign-${campaign.campaign}`}
-                    value={String(campaign.campaign)} // pastikan nilai yang dikirim adalah string
-                    checked={selectedCampaign.includes(String(campaign.campaign))} // pastikan perbandingan selalu menggunakan string
-                    onChange={handleCampaignChange} // Menangani perubahan pada checkbox
-                    className="mr-2"
-                  />
-                  {/* Label */}
-                  <label
-                    htmlFor={`campaign-${campaign.campaign}`}
-                    className={`flex-1 ${selectedCampaign.includes(String(campaign.campaign)) ? 'font-semibold' : 'font-normal'}`}
-                  >
-                    {`Campaign ${campaign.campaign}`}
-                  </label>
-                </div>
-              ))}
+                  Checkbox
+                </button>
+                <button
+                  onClick={() => setIsCheckboxMode(false)}
+                  className={`px-4 py-2 rounded-md ${!isCheckboxMode ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300'}`}
+                >
+                  Dropdown
+                </button>
+              </div>
             </div>
-          ) : (
-            <select
-              id="campaign"
-              value={selectedCampaign}
-              onChange={handleCampaignChange}
-              multiple
-              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary overflow-y-auto overflow-x-hidden custom-scrollbar"
-              style={{ padding: '0.5rem', fontSize: '1rem' }} // Padding agar elemen lebih nyaman
-            >
-              {campaigns.map((campaign, index) => (
-                <option
-                  key={index}
-                  value={campaign.campaign}
-                  className="py-2" // Tambahkan padding vertikal pada opsi untuk memberikan jarak antar item
-                >
-                  {`Campaign ${campaign.campaign}`}
-                </option>
-              ))}
-            </select>
-          )
-        )}
-      </div>
-    </div>
 
-  </>
-)}
+            {/* Filter Campaign */}
+            <div className="mb-6">
+              <label htmlFor="campaign" className="block text-sm font-medium mb-2">Select campaign</label>
+              <div>
+                {isLoadingCampaigns ? (
+                  <select
+                    id="campaign"
+                    className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="" disabled>No campaign available</option>
+                  </select>
+                ) : (
+                  isCheckboxMode ? (
+                    <div className="space-y-2">
+                      {campaigns.map((campaign, index) => (
+                        <div
+                          key={index}
+                          className={`flex items-center p-2 rounded-md transition-colors duration-200 ${selectedCampaign.includes(campaign.campaign)
+                            ? 'bg-blue-500 text-white' // Background biru jika dicentang
+                            : 'bg-gray-700 text-gray-300' // Background abu-abu jika tidak dicentang
+                            }`}
+                        >
+                          {/* Checkbox */}
+                          <input
+                            type="checkbox"
+                            id={`campaign-${campaign.campaign}`}
+                            value={String(campaign.campaign)} // pastikan nilai yang dikirim adalah string
+                            checked={selectedCampaign.includes(String(campaign.campaign))} // pastikan perbandingan selalu menggunakan string
+                            onChange={handleCampaignChange} // Menangani perubahan pada checkbox
+                            className="mr-2"
+                          />
+                          {/* Label */}
+                          <label
+                            htmlFor={`campaign-${campaign.campaign}`}
+                            className={`flex-1 ${selectedCampaign.includes(String(campaign.campaign)) ? 'font-semibold' : 'font-normal'}`}
+                          >
+                            {`Campaign ${campaign.campaign}`}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <select
+                      id="campaign"
+                      value={selectedCampaign}
+                      onChange={handleCampaignChange}
+                      multiple
+                      className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary overflow-y-auto overflow-x-hidden custom-scrollbar"
+                      style={{ padding: '0.5rem', fontSize: '1rem' }} // Padding agar elemen lebih nyaman
+                    >
+                      {campaigns.map((campaign, index) => (
+                        <option
+                          key={index}
+                          value={campaign.campaign}
+                          className="py-2" // Tambahkan padding vertikal pada opsi untuk memberikan jarak antar item
+                        >
+                          {`Campaign ${campaign.campaign}`}
+                        </option>
+                      ))}
+                    </select>
+                  )
+                )}
+              </div>
+            </div>
+
+          </>
+        )}
 
 
 
