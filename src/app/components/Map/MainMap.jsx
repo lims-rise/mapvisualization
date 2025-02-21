@@ -917,33 +917,33 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
     console.log('data zoom', zoom);
 
   // Gunakan useEffect untuk mengubah loading ketika geoJsonData selesai diterima
-  useEffect(() => {
-    if (geoJsonData.length > 0) {
-      setLoading(false); // Set loading ke false hanya setelah geoJsonData berhasil dimuat
-    }
-  }, [geoJsonData]); // Memantau geoJsonData
+  // useEffect(() => {
+  //   if (geoJsonData.length > 0) {
+  //     setLoading(false); // Set loading ke false hanya setelah geoJsonData berhasil dimuat
+  //   }
+  // }, [geoJsonData]); // Memantau geoJsonData
 
   // Fungsi untuk fetch data berdasarkan filter yang dipilih
-  const fetchData = useCallback(async () => {
-    setLoading(true); // Mulai loading
-    try {
-      // Simulasi API fetch berdasarkan filter
-      const response = await fetch(`/api/data?country=${selectedCountry?.prefix}&campaign=${selectedCampaign}&objective=${selectedObjective}&settlement=${selectedSettlement?.settlement}`);
-      const data = await response.json();
-      setGeoJsonData(data); // Set data hasil fetch
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false); // Selesai loading
-    }
-  }, [selectedCountry?.prefix, selectedCampaign, selectedObjective, selectedSettlement?.settlement]); // Fetch ulang data saat filter berubah
+  // const fetchData = useCallback(async () => {
+  //   setLoading(true); // Mulai loading
+  //   try {
+  //     // Simulasi API fetch berdasarkan filter
+  //     const response = await fetch(`/api/data?country=${selectedCountry?.prefix}&campaign=${selectedCampaign}&objective=${selectedObjective}&settlement=${selectedSettlement?.settlement}`);
+  //     const data = await response.json();
+  //     setGeoJsonData(data); // Set data hasil fetch
+  //   } catch (error) {
+  //     console.error('Error fetching data:', error);
+  //   } finally {
+  //     setLoading(false); // Selesai loading
+  //   }
+  // }, [selectedCountry?.prefix, selectedCampaign, selectedObjective, selectedSettlement?.settlement]); // Fetch ulang data saat filter berubah
 
   // // Menggunakan useEffect untuk memanggil fetchData saat filter berubah
-  useEffect(() => {
-    if (selectedCountry || selectedCampaign || selectedSettlement || selectedStatus || selectedObjective) {
-      fetchData(); // Panggil fetchData jika filter berubah
-    }
-  }, [selectedCountry, selectedCampaign, fetchData, selectedSettlement, selectedStatus, selectedObjective]);
+  // useEffect(() => {
+  //   if (selectedCountry || selectedCampaign || selectedSettlement || selectedStatus || selectedObjective) {
+  //     fetchData(); // Panggil fetchData jika filter berubah
+  //   }
+  // }, [selectedCountry, selectedCampaign, fetchData, selectedSettlement, selectedStatus, selectedObjective]);
 
   return (
     <div style={{ position: 'relative', height: '100vh' }}>
