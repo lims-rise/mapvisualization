@@ -24,11 +24,6 @@ function Sidebar() {
   const [isLoadingEquipment, setIsLoadingEquipment] = useState(true); // Loading state untuk equipment
   const [isCheckboxMode, setIsCheckboxMode] = useState(true); // Toggle untuk memilih mode (checkbox atau dropdown)
 
-  // const handleEquipmentChange = (event) => {
-  //   const equipmentCode = event.target.value; // Ambil value (url_name)
-  //   const selectedEq = equipments.find((equipment) => equipment.equipment_ === equipmentCode);
-  //   setSelectedEquipment(selectedEq); // Simpan objek lengkap jika perlu
-  // }
 
   const handleObjectiveChange = (event) => {
     const objectiveCode = event.target.value; // Ambil value (url_name)
@@ -36,23 +31,6 @@ function Sidebar() {
     setSelectedObjective(selectedObj); // Simpan objek lengkap jika perlu
   };
 
-  // const handleCampaignChange = (event) => {
-  //   if (isCheckboxMode) {
-  //     // Ketika menggunakan checkbox, simpan nilai sebagai string
-  //     const campaignValue = event.target.value; // Simpan sebagai string
-  
-  //     // Update state dengan menambahkan atau menghapus campaign dari selectedCampaign
-  //     setSelectedCampaign((prevCampaigns) =>
-  //       prevCampaigns.includes(campaignValue)
-  //         ? prevCampaigns.filter((campaign) => campaign !== campaignValue) // Hapus jika sudah tercentang
-  //         : [...prevCampaigns, campaignValue] // Tambahkan jika belum tercentang
-  //     );
-  //   } else {
-  //     // Ketika menggunakan dropdown (multiple selection), ambil semua opsi yang dipilih
-  //     const campaignValues = Array.from(event.target.selectedOptions, (option) => option.value);
-  //     setSelectedCampaign(campaignValues); // Update state dengan array kampanye yang dipilih
-  //   }
-  // };
 
   const handleCampaignChange = (event) => {
     if (isCheckboxMode) {
@@ -77,7 +55,6 @@ function Sidebar() {
     }
   };
   
-  
 
   const handleCountryChange = (event) => {
     const countryCode = event.target.value;
@@ -100,7 +77,25 @@ function Sidebar() {
     }
   }
 
-  // Fetch data negara dan kampanye pada saat pertama kali render
+   // Fungsi umum untuk fetch data dan handle error dan loading
+   const fetchData = async (url, setter, loadingSetter) => {
+    try {
+      loadingSetter(true); // Set loading true
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setter(data);
+    } catch (error) {
+      console.error(`Error fetching data from ${url}:`, error);
+      setError(error); // Menangani error secara umum
+    } finally {
+      loadingSetter(false); // Set loading false setelah data didapat
+    }
+  };
+
+  // Fetch data negara saat pertama kali render
   useEffect(() => {
     const fetchCountryData = async () => {
       try {
@@ -109,156 +104,29 @@ function Sidebar() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const countryData = await response.json();
-        console.log('Country Data:', countryData); // Log data negara
-        setCountries(countryData);
-        setIsLoadingCountries(false); // Set loading false setelah data negara berhasil dimuat
+        setCountries(countryData); // Set data negara
+        setIsLoadingCountries(false); // Hentikan loading negara
       } catch (error) {
         console.error("Error fetching country data:", error);
+        setIsLoadingCountries(false);
       }
     };
 
     fetchCountryData();
-  }, []); // Hanya dijalankan saat komponen pertama kali di-render
+  }, []); // Fetch hanya sekali saat pertama kali render
 
-  // Fetch kampanye berdasarkan negara yang dipilih
+  // Fetch data lain berdasarkan negara yang dipilih
   useEffect(() => {
-    const fetchCampaignData = async () => {
-      if (!selectedCountry) return;
+    if (!selectedCountry) return; // Jika tidak ada negara yang dipilih, hentikan fetch
 
-      try {
-        const response = await fetch(`./api/campaign?country=${selectedCountry.prefix}`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const campaignData = await response.json();
-        console.log('Campaign Data:', campaignData); // Log data kampanye
-        setCampaigns(campaignData);
-        setIsLoadingCampaigns(false); // Set loading false setelah data kampanye berhasil dimuat
-      } catch (error) {
-        console.error("Error fetching campaign data:", error);
-      }
-    };
+    // Fetch kampanye, settlement, status, dan objective setelah negara dipilih
+    fetchData(`./api/campaign?country=${selectedCountry.prefix}`, setCampaigns, setIsLoadingCampaigns);
+    fetchData(`./api/settlement?country=${selectedCountry.prefix}`, setSettlements, setIsloadingSettelments);
+    fetchData(`./api/status?country=${selectedCountry.prefix}`, setStatus, setIsLoadingStatus);
+    fetchData(`./api/objective?country=${selectedCountry.prefix}`, setObjectives, setIsloadingObjective);
 
-    fetchCampaignData();
-  }, [selectedCountry]); // Hanya dijalankan setiap kali selectedCountry berubah
+  }, [selectedCountry]); // Fetch data lain hanya jika selectedCountry berubah
 
-  // useEffect(() => {
-  //   const fetchCampaignData = async () => {
-  //     if (!selectedCountry) return;
-  
-  //     try {
-  //       const response = await fetch(`./api/campaign?country=${selectedCountry.prefix}`);
-  //       if (!response.ok) {
-  //         throw new Error(`HTTP error! status: ${response.status}`);
-  //       }
-  //       const campaignData = await response.json();
-  //       console.log('Campaign Data:', campaignData); // Log data kampanye
-  //       setCampaigns(campaignData);
-  //       setIsLoadingCampaigns(false); // Set loading false setelah data kampanye berhasil dimuat
-  
-  //       // Cari campaign dengan nilai terbesar (misalnya, ID terbesar)
-  //       if (campaignData.length > 0) {
-  //         const maxCampaign = campaignData.reduce((max, campaign) => {
-  //           return parseInt(campaign.campaign) > parseInt(max.campaign) ? campaign : max;
-  //         });
-  //         setSelectedCampaign(String(maxCampaign.campaign)); // Set default ke campaign dengan nilai terbesar (misalnya, campaign 18)
-  //       }
-  //     } catch (error) {
-  //       console.error("Error fetching campaign data:", error);
-  //     }
-  //   };
-  
-  //   fetchCampaignData();
-  // }, [selectedCountry]); // Hanya dijalankan setiap kali selectedCountry berubah
-  
-  
-
-  useEffect(() => {
-    const fetchSettlementData = async () => {
-      if (!selectedCountry) return;
-
-      try {
-        const response = await fetch(`./api/settlement?country=${selectedCountry.prefix}`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const settlementData = await response.json();
-        console.log('Settlement Data:', settlementData);
-        setSettlements(settlementData);
-        setIsloadingSettelments(false);
-      } catch (error) {
-        console.error("Error fetching settlement data:", error);
-        setIsloadingSettelments(false); // Pastikan loading diset false meskipun ada error
-      }
-    };
-    fetchSettlementData();
-}, [selectedCountry]);  // Trigger data settlement jika selectedCountry berubah
-
-
-useEffect(() => {
-  const fetchStatusData = async () => {
-    if (!selectedCountry) return;
-
-    try{
-      const response = await fetch(`./api/status?country=${selectedCountry.prefix}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const statusData = await response.json();
-      console.log('Status Data : ', statusData);
-      setStatus(statusData);
-      setIsLoadingStatus(false);
-    } catch {
-      console.error("Error fetching status data: ", error);
-      setIsLoadingStatus(false);
-    }
-  }
-  fetchStatusData();
-}, [selectedCountry]);
-
-useEffect(() => {
-  const fetchObjectiveData = async () => {
-      if(!selectedCountry) return;
-
-      try {
-        const response = await fetch(`./api/objective?country=${selectedCountry.prefix}`);
-        if(!response.ok) {
-          throw new Error(`HTTP error ! status: ${response.status} `);
-        }
-        const objectiveData = await response.json();
-        console.log('Objective Data: ', objectiveData);
-        setObjectives(objectiveData);
-        setIsloadingObjective(false);
-      } catch {
-        console.error("Error fetching objective data: ", error);
-        setIsloadingObjective(false);
-      }
-  }
-  fetchObjectiveData();
-},[selectedCountry]);
-
-
-  // Fetch equipment berdasarkan negara yang dipilih
-  // useEffect(() => {
-  //   const fetchEquipmentData = async () => {
-  //     if (!selectedCountry) return;
-
-  //     try {
-  //       const response = await fetch(`./api/equipment?prefix=${selectedCountry.prefix}`);
-  //       if (!response.ok) {
-  //         throw new Error(`HTTP error! status: ${response.status}`);
-  //       }
-  //       const equipmentData = await response.json();
-  //       console.log('Campaign Data:', equipmentData); // Log data kampanye
-  //       setEquipments(equipmentData);
-  //       setIsLoadingEquipment(false); // Set loading false setelah data kampanye berhasil dimuat
-  //     } catch (error) {
-  //       console.error("Error fetching equipment data:", error);
-  //     }
-  //   };
-
-  //   fetchEquipmentData();
-  // }, [selectedCountry]);
 
 
   useEffect(() => {
@@ -600,38 +468,6 @@ useEffect(() => {
         )}
 
 
-
-        {/* Filter Equipment */}
-        {/* <div className="mb-6">
-          <label htmlFor="equipment" className="block text-sm font-medium mb-2">Select Equipment</label>
-          {isLoadingEquipment ? (
-            <select
-              id="equipment"
-              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="" disabled>No Equipment available</option>
-            </select>
-          ) : (
-            <select
-              id="equipment"
-              value={selectedEquipment ? selectedEquipment.url_name : ""}
-              onChange={handleEquipmentChange}
-              className="w-full bg-gray-700 text-white border border-gray-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="" disabled>Select a equipment</option>
-              {equipments.length > 0 ? (
-                equipments.map((equipment, index) => (
-                  <option key={index} value={equipment.equipment_}>
-                    {equipment.equipment_}
-                  </option>
-                ))
-              ) : (
-                <option value="" disabled>No equipment available</option>
-              )}
-            </select>
-          )}
-        </div> */}
-
       </div>
     </div>
     <div className="flex-1 overflow-auto">
@@ -647,7 +483,9 @@ useEffect(() => {
     </div>
     <div className="sidebar-container hidden sm:hidden md:block w-64 bg-gray-800 text-white p-4 shadow-lg max-h-screen overflow-y-auto">
       <RightSidebar
-          selectedSettlement1={selectedSettlement}
+          selectedSettlementRightSidebar ={selectedSettlement}
+          selectedObjectiveRightSidebar = {selectedObjective?.url_name}
+          selectedCountryRightSidebar = {selectedCountry?.name}
       />
     </div>
     </>

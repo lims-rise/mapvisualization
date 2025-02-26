@@ -5,9 +5,10 @@ export async function GET(request) {
   const db = getDbConnection(); // Mendapatkan koneksi dari singleton
   const { searchParams } = new URL(request.url);
   const selectedCountry = searchParams.get('id_country');
+  const selectedSettlement = searchParams.get('settlement');
 
   // Debugging log untuk memastikan parameter yang diterima benar
-  console.log('Selected Country:', selectedCountry);
+  console.log('Selected Country:', selectedSettlement);
 
   try {
     let query = db('gdb_rise_boundary')
@@ -23,6 +24,11 @@ export async function GET(request) {
     if (selectedCountry) {
       console.log('Applying country filter:', selectedCountry);  // Debugging filter
       query = query.where('id_country', selectedCountry); // Menambahkan filter berdasarkan id_country
+    }
+
+    if (selectedSettlement) {
+      console.log('Applying country filter:', selectedSettlement);  // Debugging filter
+      query = query.where('settlement', selectedSettlement); // Menambahkan filter berdasarkan id_country
     }
 
     // Debugging: Print query SQL untuk memastikan sintaksnya benar

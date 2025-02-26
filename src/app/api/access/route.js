@@ -4,22 +4,29 @@ import { getDbConnection } from "../../../../lib/db";
 export async function GET(request) {
     const db = getDbConnection(); // Mendapatkan koneksi dari singleton
     const {searchParams} = new URL(request.url);
+    const selectedCountry = searchParams.get('id_country');
+    const selectedSettlement = searchParams.get('settlement');
 
     try {
         let query = db('gdb_rise_access').select(
             'gid',
-            'fid_',
-            'entity',
-            'layer',
-            'color',
-            'linetype',
-            'elevation',
-            'linewt',
-            'refname',
-            'id',
             'settlement',
             db.raw('ST_AsGeoJSON(geom) AS geom')
         );
+
+        // Filter berdasarkan country jika ada
+        if (selectedCountry) {
+            console.log('Applying country filter:', selectedCountry);  // Debugging filter
+            query = query.where('id_country', selectedCountry); // Menambahkan filter berdasarkan id_country
+        }
+    
+        if (selectedSettlement) {
+            console.log('Applying country filter:', selectedSettlement);  // Debugging filter
+            query = query.where('settlement', selectedSettlement); // Menambahkan filter berdasarkan id_country
+        }
+  
+        // Debugging: Print query SQL untuk memastikan sintaksnya benar
+        console.log('Generated SQL:', query.toString());
 
         const result = await query;
         return NextResponse.json(result);
