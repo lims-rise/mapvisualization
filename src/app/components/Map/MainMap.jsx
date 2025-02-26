@@ -119,7 +119,6 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
     console.log('equipmentData', equipmentData);
     console.log('data pusat', data);
 
-   
 
     useEffect(() => {
         console.log('datanya peta', selectedCountry)
@@ -136,12 +135,6 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
       }
     }, [selectedSettlement]); // Re-run when selectedCountry changes
 
-    // useEffect(() => {
-    //     if (mapRef.current) {
-    //         // If the map has been initialized, update the center and zoom
-    //         mapRef.current.setView(center, zoom); // Move the map to the new center and zoom level
-    //     }
-    // }, [center, zoom]); // Update map view when center or zoom changes
 
       // Update the map view with smooth animation when center or zoom changes using flyTo
     useEffect(() => {
@@ -154,323 +147,147 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
       }
     }, [center, zoom]); // Only run when center or zoom change
 
-  //   useEffect(() => {
-  //     const fetchData = async () => {
-  //         if (!selectedCampaign || selectedCampaign.length === 0) {
-  //             console.log("No campaign selected, skipping data fetch.");
-  //             return; // Jika tidak ada kampanye yang dipilih, hentikan proses fetch
-  //         }
-          
-  //         try {
-  //             // Membangun URL dengan parameter filter campaign
-  //             let url = "./api/data";
-              
-  //             // Menambahkan filter kampanye ke URL
-  //             if (selectedCampaign.length > 0) {
-  //                 url += `?campaign=${selectedCampaign.join(',')}`; // Mengirimkan daftar kampanye yang dipilih
-  //             }
-  
-  //             // Mengambil data dari API untuk geojson data (peta bangunan)
-  //             const res = await fetch(url);
-  //             if (!res.ok) {
-  //                 throw new Error(`HTTP error! status: ${res.status}`);
-  //             }
-  //             const data = await res.json();
-  //             setData(data);
-  
-  //             // Ambil data boundary (MultiLineString) dari API tambahan
-  //             const boundaryRes = await fetch("./api/boundary");
-  //             if (!boundaryRes.ok) {
-  //                 throw new Error(`HTTP error! status: ${boundaryRes.status}`);
-  //             }
-  //             const boundaryData = await boundaryRes.json();
-  //             setBoundaryData(boundaryData);
-  
-  //             // Ambil data road_access (MultiLineString) dari API tambahan
-  //             const roadAccess = await fetch("./api/access");
-  //             if (!roadAccess.ok) {
-  //                 throw new Error(`HTTP error! status: ${roadAccess.status}`);
-  //             }
-  //             const roadAccessData = await roadAccess.json();
-  //             setRoadAccessData(roadAccessData);
 
-  //             // // Ambil data bootsock (MultiLineString) dari API tambahan
-  //             // const bootsock = await fetch("./api/bootsock");
-  //             // if (!bootsock.ok) {
-  //             //   throw new Error(`HTTP error! status: ${bootsock.status}`);
-  //             // }
-  //             // const bootsockData = await bootsock.json();
-  //             // setBootsockData(bootsockData);
-  
-  //         } catch (error) {
-  //             setError(error);
-  //         }
-  //     };
-  
-  //     fetchData(); // Ambil data setiap kali selectedCampaign berubah
-  // }, [selectedCampaign]);
-
-      // Fetch bootsock data based on selectedObjective
+    const fetchDataFromAPI = async (url, queryParams, setData, setError) => {
+      try {
+        if (queryParams.toString()) {
+          url += `?${queryParams.toString()}`;
+        }
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+        setData(data);
+      } catch (error) {
+        setError(error);
+      }
+    };
+    
+    const buildQueryParams = (selectedCampaign, selectedCountry, selectedObjective, selectedSettlement) => {
+      const queryParams = new URLSearchParams();
       
-      // useEffect(() => {
-      //   const fetchEquipmentData = async () => {
-      //     if (!selectedObjective) return; // Don't fetch bootsock data if no objective selected
-
-      //     if(selectedObjective === 'objective_2'){
-      //       try {
-      //         let urlEquipment = "./api/equipmento2a";
-      //         const queryParams = new URLSearchParams();
-  
-      //         if (selectedCountry && selectedCountry.id_country) {
-      //           queryParams.append('id_country', selectedCountry.id_country);
-      //         }
-              
-      //         if (queryParams.toString()) {
-      //           urlEquipment += `?${queryParams.toString()}`;
-      //         }
-  
-      //         // Ambil data equipment (Point ) dari API tambahan
-      //         const equipmentRes = await fetch(urlEquipment);
-      //         if (!equipmentRes.ok) {
-      //           throw new Error(`HTTP error! status: ${equipmentRes.status}`);
-      //         }
-      //         const equipmentData = await equipmentRes.json();
-      //         setEquipmentData(equipmentData);
-      //       } catch (error) {
-      //         setError(error);
-      //       }
-      //     }
-      //   }
-
-      //   fetchEquipmentData();
-      // },[selectedCountry])
-
-      useEffect(() => {
-        const fetchData = async () => {
-          if (!selectedCampaign || !selectedObjective  || !selectedCountry || !selectedSettlement) {
-            console.log("No campaign selected, skipping data fetch.");
-            return; // Jika tidak ada kampanye yang dipilih, hentikan proses fetch
-          }
+      if (selectedCampaign?.length > 0) {
+        queryParams.append('campaign', selectedCampaign.join(','));
+      }
       
-          try {
-            let url = "./api/data";
-            let urlBoundary = "./api/boundary";
+      if (selectedCountry?.prefix) {
+        queryParams.append('country', selectedCountry?.prefix);
+      }
       
-            // Menambahkan filter kampanye dan negara ke URL jika ada
-            const queryParams = new URLSearchParams();
-            const queryParams1 = new URLSearchParams();
+      if (selectedObjective) {
+        queryParams.append('objective', selectedObjective);
+      }
       
-            // General Data
-            if (selectedCampaign.length > 0) {
-              queryParams.append('campaign', selectedCampaign.join(','));
-            }
-      
-            if (selectedCountry?.prefix) {
-              queryParams.append('country', selectedCountry?.prefix); // Gunakan selectedCountry.prefix di sini
-            }
-      
-            if (selectedObjective) {
-              queryParams.append('objective', selectedObjective);
-            }
+      if (selectedSettlement) {
+        queryParams.append('settlement', selectedSettlement?.settlement);
+      }
+    
+      return queryParams;
+    };
 
-            if (selectedSettlement) {
-              queryParams.append('settlement', selectedSettlement?.settlement);
-            }
-      
-            if (queryParams.toString()) {
-              url += `?${queryParams.toString()}`;
-            }
-      
-            // Mengambil data dari API untuk geojson data (peta bangunan)
-            const res = await fetch(url);
-            if (!res.ok) {
-              throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            const data = await res.json();
-            setData(data);
-      
-            // Boundary
-            if (selectedCountry && selectedCountry.id_country) {
-              queryParams1.append('id_country', selectedCountry.id_country);
-            }
-      
-            if (queryParams1.toString()) {
-              urlBoundary += `?${queryParams1.toString()}`;
-            }
-      
-            // Ambil data boundary (MultiLineString) dari API tambahan
-            const boundaryRes = await fetch(urlBoundary);
-            if (!boundaryRes.ok) {
-              throw new Error(`HTTP error! status: ${boundaryRes.status}`);
-            }
-            const boundaryData = await boundaryRes.json();
-            setBoundaryData(boundaryData);
-      
-            // Ambil data road_access (MultiLineString) dari API tambahan
-            const roadAccessRes = await fetch("./api/access");
-            if (!roadAccessRes.ok) {
-              throw new Error(`HTTP error! status: ${roadAccessRes.status}`);
-            }
-            const roadAccessData = await roadAccessRes.json();
-            setRoadAccessData(roadAccessData);
-      
-          } catch (error) {
-            setError(error);
-          }
-        };
-      
-        fetchData(); // Ambil data setiap kali selectedCampaign atau selectedCountry berubah
-      }, [selectedCampaign, selectedCountry, selectedObjective, selectedSettlement]);
-      
-
-      
-      
-    //   useEffect(() => {
-
-    //     const fetchEquipmentData = async () => {
-    //       if (!selectedObjective) return; // Don't fetch bootsock data if no objective selected
-
-    //       if(selectedObjective === 'objective_2a'){
-    //         try {
-    //           const res = await fetch("./api/equipmento2a");
-    //           if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    //           const equipmentData = await res.json();
-    //           setEquipmentData(equipmentData);
-    //           } catch (error) {
-    //               setError(error);
-    //           }
-    //         return
-    //       }
-    //     };
-
-    //     const fetchBootsockData = async () => {
-    //         if (!selectedObjective) return; // Don't fetch bootsock data if no objective selected
-
-    //         if(selectedObjective === 'objective_2b'){
-    //           try {
-    //             const res = await fetch("./api/bootsock");
-    //             if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    //             const bootsockData = await res.json();
-    //             setBootsockData(bootsockData);
-    //             } catch (error) {
-    //                 setError(error);
-    //             }
-    //           return
-    //         }
-    //     };
-
-    //     const fetchInhousewaterData = async () => {
-    //       if (!selectedObjective) return; // Don't fetch bootsock data if no objective selected
-
-    //       if (selectedObjective === 'objective_2b') {
-    //         try {
-    //           const res = await fetch("./api/inhousewater");
-    //           if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    //           const inhousewaterData = await res.json();
-    //           setInhousewaterData(inhousewaterData);
-    //           } catch (error) {
-    //               setError(error);
-    //           }
-    //         return
-    //       }
-    //     };
-
-    //     const fetchSoidData = async () => {
-    //       if (!selectedObjective) return;
-
-    //       if (selectedObjective === 'objective_2b') {
-    //         try {
-    //           const res = await fetch("./api/soil");
-    //           if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    //           const soilData = await res.json();
-    //           setSoilData(soilData);
-    //           } catch {
-    //             setError(error);
-    //           }
-    //         return
-    //       }
-    //     };
-
-    //     const fetchWaterData = async () => {
-    //       if (!selectedObjective) return;
-
-    //       if (selectedObjective === 'objective_2b') {
-    //         try {
-    //           const res = await fetch("./api/water");
-    //           if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    //           const waterData = await res.json();
-    //           setWaterData(waterData);
-    //           } catch {
-    //             setError(error);
-    //           }
-    //         return
-    //       }
-    //     };
-
-    //     const fetchWellData = async () => {
-    //       if (!selectedObjective) return;
-
-    //       if (selectedObjective === 'objective_2b') {
-    //         try {
-    //           const res = await fetch("./api/well");
-    //           if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    //           const wellData = await res.json();
-    //           setWellData(wellData);
-    //           } catch {
-    //             setError(error);
-    //           }
-    //         return
-    //       }
-    //     };
-
-    //     fetchWellData();
-    //     fetchWaterData();
-    //     fetchSoidData();
-    //     fetchInhousewaterData();
-    //     fetchBootsockData(); // Fetch bootsock data when selectedObjective changes
-    //     fetchEquipmentData();
-    // }, [error, selectedObjective]);
+    const buildQueryParams1 = (country, settlement) => {
+      const queryParams = new URLSearchParams();
+      if (country && country.id_country) {
+        queryParams.append('id_country', country.id_country);
+      }
+      if (settlement) {
+        queryParams.append('settlement', settlement?.settlement);
+      }
+      return queryParams;
+    };
 
     useEffect(() => {
-      // Reset data setiap kali objective berubah
+      setLoading(true); // Set loading state to true during data fetch
+      const fetchData = async () => {
+        if (!selectedCampaign || !selectedObjective || !selectedCountry || !selectedSettlement) {
+          console.log("No campaign selected, skipping data fetch.");
+          setLoading(false); // Stop loading if missing required data
+          return;
+        }
+  
+        try {
+          // General query parameters for all APIs
+          const queryParams = buildQueryParams(selectedCampaign, selectedCountry, selectedObjective, selectedSettlement);
+          
+          // URL endpoints
+          const urls = {
+            data: "./api/data",
+            boundary: "./api/boundary",
+            access: "./api/access"
+          };
+  
+          // Fetch general data
+          await fetchDataFromAPI(urls.data, queryParams, setData, setError);
+          
+          // Fetch boundary data
+          const boundaryParams = new URLSearchParams();
+          if (selectedCountry?.id_country) {
+            boundaryParams.append('id_country', selectedCountry.id_country);
+          }
+          if (selectedSettlement) {
+            boundaryParams.append('settlement', selectedSettlement?.settlement);
+          }
+          await fetchDataFromAPI(urls.boundary, boundaryParams, setBoundaryData, setError);
+  
+          // Fetch road access data
+          const accessParams = new URLSearchParams();
+          if (selectedCountry?.id_country) {
+            accessParams.append('id_country', selectedCountry.id_country);
+          }
+          if (selectedSettlement) {
+            accessParams.append('settlement', selectedSettlement?.settlement);
+          }
+          await fetchDataFromAPI(urls.access, accessParams, setRoadAccessData, setError);
+  
+        } catch (error) {
+          setError(error);
+        } finally {
+          setLoading(false); // Set loading state to false once data fetching is done
+        }
+      };
+  
+      fetchData();
+    }, [selectedCampaign, selectedObjective, selectedCountry, selectedSettlement, setLoading, setError, setData, setBoundaryData, setRoadAccessData]);
+
+    useEffect(() => {
+      setLoading(true);
+      // Reset data
       setEquipmentData([]);
       setInhousewaterData([]);
       setSoilData([]);
       setWaterData([]);
       setWellData([]);
       setBootsockData([]);
-    
-      setLoading(true);
-    
-      // Fetch data baru berdasarkan objective
-      const fetchData = async () => {
-        if (!selectedObjective) return;
-    
+  
+      // Return early if any required params are missing
+      if (!selectedCampaign || !selectedObjective || !selectedCountry || !selectedSettlement) {
+        setLoading(false);
+        return;
+      }
+  
+      const fetchObjectiveData = async () => {
         try {
+          const queryParams = buildQueryParams1(selectedCountry, selectedSettlement);
+  
           if (selectedObjective === 'objective_2a') {
-            const resEquipment = await fetch("/api/equipmento2a");
-            const equipment = await resEquipment.json();
-            setEquipmentData(equipment);
+            // Objective2a
+            const urlObjective2a = "./api/equipmento2a";
+            await fetchDataFromAPI(urlObjective2a, queryParams, setEquipmentData, setError);
           } else if (selectedObjective === 'objective_2b') {
-            const resBootsock = await fetch("/api/bootsock");
-            const bootsock = await resBootsock.json();
-            setBootsockData(bootsock);
-            
-            const resInhousewater = await fetch("/api/inhousewater");
-            const inhousewater = await resInhousewater.json();
-            setInhousewaterData(inhousewater);
-            
-            const resSoil = await fetch("/api/soil");
-            const soil = await resSoil.json();
-            setSoilData(soil);
-    
-            const resWater = await fetch("/api/water");
-            const water = await resWater.json();
-            setWaterData(water);
-    
-            const resWell = await fetch("/api/well");
-            const well = await resWell.json();
-            setWellData(well);
+            // Fetch data for all API endpoints related to 'objective_2b'
+  
+            const urls = [
+              { url: "./api/bootsock", setData: setBootsockData },
+              { url: "./api/inhousewater", setData: setInhousewaterData },
+              { url: "./api/soil", setData: setSoilData },
+              { url: "./api/water", setData: setWaterData },
+              { url: "./api/well", setData: setWellData },
+            ];
+  
+            for (const { url, setData } of urls) {
+              await fetchDataFromAPI(url, queryParams, setData, setError);
+            }
           }
         } catch (error) {
           setError(error);
@@ -478,10 +295,10 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
           setLoading(false);
         }
       };
-    
-      fetchData();
-    }, [selectedObjective]);
   
+      fetchObjectiveData();
+    }, [selectedCampaign, selectedCountry, selectedObjective, selectedSettlement, setBootsockData, setEquipmentData, setError, setInhousewaterData, setLoading, setSoilData, setWaterData, setWellData]);
+    
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const convertToEquipmentGeoJSON = (equipment) => {
@@ -868,7 +685,6 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
           geoJsonData,
           gid: water.gid,
           id: water.id,
-          date: water.date,
           township: water.township,
         };
       }
@@ -915,35 +731,6 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
 
     console.log('data center', center);
     console.log('data zoom', zoom);
-
-  // Gunakan useEffect untuk mengubah loading ketika geoJsonData selesai diterima
-  // useEffect(() => {
-  //   if (geoJsonData.length > 0) {
-  //     setLoading(false); // Set loading ke false hanya setelah geoJsonData berhasil dimuat
-  //   }
-  // }, [geoJsonData]); // Memantau geoJsonData
-
-  // Fungsi untuk fetch data berdasarkan filter yang dipilih
-  // const fetchData = useCallback(async () => {
-  //   setLoading(true); // Mulai loading
-  //   try {
-  //     // Simulasi API fetch berdasarkan filter
-  //     const response = await fetch(`/api/data?country=${selectedCountry?.prefix}&campaign=${selectedCampaign}&objective=${selectedObjective}&settlement=${selectedSettlement?.settlement}`);
-  //     const data = await response.json();
-  //     setGeoJsonData(data); // Set data hasil fetch
-  //   } catch (error) {
-  //     console.error('Error fetching data:', error);
-  //   } finally {
-  //     setLoading(false); // Selesai loading
-  //   }
-  // }, [selectedCountry?.prefix, selectedCampaign, selectedObjective, selectedSettlement?.settlement]); // Fetch ulang data saat filter berubah
-
-  // // Menggunakan useEffect untuk memanggil fetchData saat filter berubah
-  // useEffect(() => {
-  //   if (selectedCountry || selectedCampaign || selectedSettlement || selectedStatus || selectedObjective) {
-  //     fetchData(); // Panggil fetchData jika filter berubah
-  //   }
-  // }, [selectedCountry, selectedCampaign, fetchData, selectedSettlement, selectedStatus, selectedObjective]);
 
   return (
     <div style={{ position: 'relative', height: '100vh' }}>
@@ -1165,7 +952,7 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
           ))}
 
           {/* Menampilkan Point */}
-          {waterGeoJson.map(({geoJsonData, gid, id, date, township}) => (
+          {waterGeoJson.map(({geoJsonData, gid, id, township}) => (
             <React.Fragment key={gid}>
               <GeoJSON
                 data={geoJsonData}
@@ -1179,7 +966,6 @@ const MainMap = ({ selectedCampaign, selectedCountry, selectedSettlement, select
                           <h3>GID: ${gid}</h3>
                           <h3>ID: ${id}</h3>
                           <ul>
-                            <li>DATE: ${date}</li>
                             <li>TOWNSHIP: ${township}</li>
                           </ul>
                         `).openPopup();

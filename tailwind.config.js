@@ -19,7 +19,8 @@ module.exports = {
         demolished: "#FF5050",
         vacant: "#FFD966",
         rundown: "#997C70",
-
+        risehouse: "#A294F9",
+        replace: "#F29F58"
       },
     },
   },
