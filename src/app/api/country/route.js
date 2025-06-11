@@ -5,7 +5,7 @@ export async function GET(request) {
     const db = getDbConnection(); // Mendapatkan koneksi dari singleton
     try {
         // Get distinct campaign values
-        let query = db('gdb_rise_country')
+        let query = db('country')
             .select('id_country', 'lat', 'long', 'name','prefix','zoom', 'utmprojection')
             .orderBy('id_country', 'asc'); // You can order by the distinct campaign value
         
