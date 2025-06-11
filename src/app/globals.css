@@ -67,5 +67,14 @@ body,
   }
 }
 
+/* Highlight the selected node */
+.vis-network .vis-node.selected {
+  background-color: #ff4500 !important;
+  border-color: #ff4500 !important;
+}
 
-
+/* Highlight connected edges */
+.vis-network .vis-edge.selected {
+  stroke: #ff4500 !important;
+  stroke-width: 3px !important;
+}
