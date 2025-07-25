@@ -319,73 +319,87 @@ const MainMap = ({ selectedCountry, selectedSettlement, selectedMenu }) => {
           )}
 
           {selectedMenu?.menu === "Map" && (
-          <MapContainer
-          // center={[-5.1476, 119.4325]} // Koordinat Makassar
-          ref={mapRef} // Attach the map reference
-          center={center} // Initial center will be set by setView() if updated
-          zoom={zoom} // Initial zoom will be set by setView() if updated
-          scrollWheelZoom={true}
-          style={{ height: '100vh' }}
-          // onViewportChanged={handleViewportChange} // Menangani perubahan pada viewport
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.esri.com">Esri</a> contributors'
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            maxZoom={19}
-          />
-          {geoJsonFeatures.map(({ geoJsonData, centroid, gid, state, tier, organisati, organisa_1, address, comments }) => (
-            <React.Fragment key={`${gid}-${state}`}>
-              {/* GeoJSON Layer */}
-              <GeoJSON
-                key={`${gid}-${state}-${comments}`}
-                data={geoJsonData}
-                style={() => ({
-                  fillColor: getColorByStatus(status),  // Menentukan warna berdasarkan status
-                  weight: 1,
-                  weight: 2,
-                  opacity: 1,
-                  color: 'white',
-                  dashArray: '3',
-                  fillOpacity: 1
-                })}
-                onEachFeature={(feature, layer) => {
-                  layer.on({
-                    mouseover: () => {
-                      layer.bindPopup(`  
-                        <h2 style="font-size: 18px; font-weight: bold;">Building Information</h2>
-                        <ul>
-                          <li><strong>State:</strong> ${state}</li>
-                          <li><strong>Tier Number:</strong> ${tier}</li>
-                          <li><strong>Type:</strong> ${organisati}</li>
-                          <li><strong>Organisasi:</strong> ${organisa_1}</li>
-                          <li><strong>Address:</strong> ${address}</li>
-                          <li><strong>Comments</strong> ${comments}</li>
-                        </ul>
-                      `).openPopup();
-                    },
-                    mouseout: () => {
-                      layer.closePopup();
-                    }
-                  });
-                }}
+              <MapContainer
+                ref={mapRef}
+                center={center}
+                zoom={zoom}
+                scrollWheelZoom={true}
+                style={{ flex: 1, borderRadius: '10px', overflow: 'hidden' }}
               >
-                {/* Tooltip menggunakan react-leaflet, dengan posisi di centroid */}
-                <Tooltip
-                  permanent = "true"
-                  direction="center"
-                  offset={[0, 0]} // Menempatkan tooltip di tengah
-                  className="custom-tooltip"
-                  position={centroid} // Menggunakan centroid sebagai posisi tooltip
-                >
-                  {state}
-                </Tooltip>
-              </GeoJSON>
-            </React.Fragment>
-          ))}
+                <TileLayer
+                  attribution='&copy; <a href="https://www.esri.com">Esri</a> contributors'
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                  maxZoom={19}
+                />
 
+                {geoJsonFeatures.map(({
+                  geoJsonData,
+                  centroid,
+                  gid,
+                  state,
+                  tier,
+                  organisati,
+                  organisa_1,
+                  address,
+                  comments,
+                  status
+                }) => (
+                  <GeoJSON
+                    key={`${gid}-${state}`}
+                    data={geoJsonData}
+                    style={{
+                      weight: 1,
+                      color: '#ffffff',
+                      dashArray: '3',
+                      fillOpacity: 0.7
+                    }}
+                    eventHandlers={{
+                      mouseover: (e) => {
+                        const layer = e.target;
+                        layer.setStyle({
+                          weight: 3,
+                          color: '#666',
+                          fillOpacity: 1
+                        });
+                      },
+                      mouseout: (e) => {
+                        const layer = e.target;
+                        layer.setStyle({
+                          weight: 1,
+                          color: '#fff',
+                          dashArray: '3',
+                          fillOpacity: 0.7
+                        });
+                      }
+                    }}
+                  >
+                    <Tooltip
+                      permanent
+                      direction="center"
+                      offset={[0, 0]}
+                      className="custom-tooltip"
+                      position={centroid}
+                    >
+                      {state}
+                    </Tooltip>
 
+                      <Popup>
+                        <div className="max-w-xs text-sm text-gray-800 font-sans">
+                          <h3 className="text-blue-800 font-bold text-base border-b pb-1 mb-2">🏢 Building Info</h3>
+                          <ul className="space-y-1">
+                            <li><span className="font-bold">Organisasi:</span> {organisa_1 || '-'}</li>
+                            <li><span className="font-bold">State:</span> {state || '-'}</li>
+                            <li><span className="font-bold">Tier:</span> {tier || '-'}</li>
+                            <li><span className="font-bold">Type:</span> {organisati || '-'}</li>
+                            <li><span className="font-bold">Address:</span> {address || '-'}</li>
+                            <li><span className="font-bold">Comments:</span> {comments || '-'}</li>
+                          </ul>
+                        </div>
+                      </Popup>
 
-          </MapContainer>
+                  </GeoJSON>
+                ))}
+              </MapContainer>
           )}
 
           {selectedMenu?.menu === "Network" && (

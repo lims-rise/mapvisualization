@@ -7,9 +7,9 @@ export async function GET(request) {
   const selectedCountry = searchParams.get('id_country');
 
   try {
-    let query = db('gdb_onewater1').select(
+    let query = db('gdb_onewater2').select(
       'gid AS organisation_id',
-      'name AS state',
+      'state',
       'tier',
       'organisati AS organisation',
       'organisa_1 AS organisation_type',

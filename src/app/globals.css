@@ -78,3 +78,21 @@ body,
   stroke: #ff4500 !important;
   stroke-width: 3px !important;
 }
+
+.leaflet-container {
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.custom-tooltip {
+  background-color: rgba(0, 0, 0, 0.75);
+  color: white;
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.leaflet-popup-content {
+  font-size: 13px;
+  line-height: 1.4;
+}
