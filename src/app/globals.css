@@ -38,11 +38,11 @@ body,
 /* CSS untuk menghilangkan latar belakang di tooltip */
 .custom-tooltip {
   background: transparent !important;  /* Menghilangkan latar belakang */
-  color: black !important;              /* Warna teks tooltip */
+  color: white !important;              /* Warna teks tooltip */
   border: none !important;             /* Menghilangkan border */
   box-shadow: none !important;         /* Menghilangkan bayangan */
-  font-size: 9px;   /* Ukuran font yang lebih kecil (opsional) */
-  font-weight: bolder;
+  font-size: 4px;   /* Ukuran font yang lebih kecil (opsional) */
+  font-weight: weight; /* Mengatur ketebalan font */
 }
 
 

@@ -77,7 +77,7 @@ const NetworkGraph = ({ nodes, edges }) => {
             return {
               layout: {
                 hierarchical: false,
-                improvedLayout: true,
+                improvedLayout: false, // 🔧 Disable improvedLayout untuk menghindari error
                 randomSeed: 42, // 🔥 Tambahkan seed untuk posisi tetap
               },
               physics: { enabled: false },
@@ -85,7 +85,12 @@ const NetworkGraph = ({ nodes, edges }) => {
           
 
         default:
-          return { layout: {}, physics: { enabled: true } };
+          return { 
+            layout: { 
+              improvedLayout: false // 🔧 Disable improvedLayout di default layout juga
+            }, 
+            physics: { enabled: true } 
+          };
       }
     };
 
@@ -106,7 +111,15 @@ const NetworkGraph = ({ nodes, edges }) => {
         hover: true,
         tooltipDelay: 200,
       },
+      configure: {
+        enabled: false, // Disable configuration UI
+      },
       ...layoutOptions, // Memasukkan layout & physics dengan benar
+      // 🔧 Global setting untuk menghindari improvedLayout error
+      layout: {
+        ...layoutOptions.layout,
+        improvedLayout: false,
+      },
     };
 
     if (!networkRef.current) {

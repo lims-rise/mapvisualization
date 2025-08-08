@@ -15,7 +15,9 @@ export async function GET(request) {
       'organisa_1 AS organisation_type',
       'address',
       'comments',
-      'connections'
+      'connections',
+      'latitude',
+      'longitude',
     );
 
     // Jika API ini dipakai untuk Map, tambahkan geom
