@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from "react-leaflet";
+import React, { useEffect, useState, useMemo, useRef, useCallback, memo } from "react";
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap, Polyline } from "react-leaflet";
 import styled from 'styled-components';
 import NetworkGraph from "../NetworkGraph/NetworkGraph";
 import DataTable from "../DataTable/DataTable";
@@ -82,6 +82,27 @@ const AutoOpenPopup = ({ selectedOrganisation, onPopupOpened }) => {
   return null;
 };
 
+// Helper component untuk mendeteksi perubahan zoom
+const MapZoomListener = ({ onZoomChange }) => {
+  const map = useMap();
+  
+  useEffect(() => {
+    const handleZoom = () => {
+      onZoomChange(map.getZoom());
+    };
+    
+    map.on('zoomend', handleZoom);
+    // Set initial zoom
+    onZoomChange(map.getZoom());
+    
+    return () => {
+      map.off('zoomend', handleZoom);
+    };
+  }, [map, onZoomChange]);
+  
+  return null;
+};
+
 // Styling untuk overlay blur
 const Overlay = styled.div`
   position: absolute;
@@ -134,6 +155,16 @@ const MainMap = ({ selectedCountry, selectedSettlement, selectedMenu, selectedSt
     const [currentView, setCurrentView] = useState('table'); // 'table' atau 'map'
     const [selectedOrganisation, setSelectedOrganisation] = useState(null); // Track selected organisation from table
     const [shouldOpenPopup, setShouldOpenPopup] = useState(false); // State untuk kontrol popup
+    
+    // States untuk network connections
+    const [showConnections, setShowConnections] = useState(false); // Toggle untuk menampilkan garis koneksi
+    const [mapZoom, setMapZoom] = useState(4); // Track zoom level saat ini
+    const CONNECTION_MIN_ZOOM = 4; // Zoom minimum untuk menampilkan garis koneksi
+    
+    // States untuk interactive highlighting
+    const [clickedMarkerId, setClickedMarkerId] = useState(null); // Track marker yang sedang di-click
+    const [hoveredConnectionId, setHoveredConnectionId] = useState(null); // Track connection yang sedang di-hover
+    const [clickedConnectionId, setClickedConnectionId] = useState(null); // Track connection yang sedang di-click
 
     // Reset currentView when selectedMenu changes
     useEffect(() => {
@@ -467,6 +498,217 @@ const MainMap = ({ selectedCountry, selectedSettlement, selectedMenu, selectedSt
       });
     }, [data, selectedMenu, selectedStates, selectedTiers, selectedTypes]);
 
+    // Memoize filtered and processed marker data untuk menghindari recalculation
+    const processedMarkerData = useMemo(() => {
+      return filteredMapData.map((item, index) => {
+        const rawLat = item.latitude || item.lat;
+        const rawLng = item.longitude || item.lng;
+        
+        const cleanLat = typeof rawLat === 'string' ? rawLat.replace(',', '.') : rawLat;
+        const cleanLng = typeof rawLng === 'string' ? rawLng.replace(',', '.') : rawLng;
+        
+        const lat = typeof cleanLat === 'string' ? parseFloat(cleanLat) : Number(cleanLat);
+        const lng = typeof cleanLng === 'string' ? parseFloat(cleanLng) : Number(cleanLng);
+        
+        if (!isNaN(lat) && !isNaN(lng)) {
+          return {
+            ...item,
+            lat,
+            lng,
+            index,
+            isValid: true
+          };
+        }
+        return {
+          ...item,
+          isValid: false
+        };
+      }).filter(item => item.isValid);
+    }, [filteredMapData]);
+
+    // Helper function untuk menentukan apakah connection harus di-highlight (improved with marker connection support)
+    const getConnectionStyle = (line) => {
+      const isHoveredConnection = hoveredConnectionId === line.connectionId;
+      const isClickedConnection = clickedConnectionId === line.connectionId;
+      
+      // Check if this connection is related to clicked marker - with debugging
+      const isConnectedToClickedMarker = clickedMarkerId && (
+        line.sourceInfo.id === clickedMarkerId || line.targetInfo.id === clickedMarkerId ||
+        String(line.sourceInfo.id) === String(clickedMarkerId) || String(line.targetInfo.id) === String(clickedMarkerId)
+      );
+      
+      // Debug logging for connection highlighting (enable temporarily for debugging)
+      if (clickedMarkerId && (line.sourceInfo.id === clickedMarkerId || line.targetInfo.id === clickedMarkerId)) {
+        console.log('Connection match found:', {
+          clickedMarkerId,
+          sourceId: line.sourceInfo.id,
+          targetId: line.targetInfo.id,
+          sourceName: line.sourceInfo.name,
+          targetName: line.targetInfo.name,
+          isConnected: isConnectedToClickedMarker
+        });
+      }
+      
+      // Priority: clicked connection > connected to clicked marker > hover > normal
+      if (isClickedConnection) {
+        return {
+          ...line,
+          opacity: Math.min(line.opacity * 1.5, 1), // Much brighter when clicked
+          weight: line.weight + 3, // Much thicker when clicked
+          color: '#FF6B6B', // Bright red when clicked
+        };
+      } else if (isConnectedToClickedMarker) {
+        return {
+          ...line,
+          opacity: Math.min(line.opacity * 1.4, 1), // Bright when connected to clicked marker
+          weight: line.weight + 2, // Thick when connected to clicked marker
+          color: '#FFA500', // Orange when connected to clicked marker
+        };
+      } else if (isHoveredConnection) {
+        return {
+          ...line,
+          opacity: Math.min(line.opacity * 1.3, 1), // Slightly brighter on hover
+          weight: line.weight + 1, // Slightly thicker on hover
+        };
+      }
+      
+      // All other connections stay normal
+      return line;
+    };
+
+    const connectionLines = useMemo(() => {
+      if (!showConnections || selectedMenu?.menu !== 'Map' || !filteredMapData.length) {
+        return [];
+      }
+
+      // Build lookup map: organisation_id -> {lat, lng, state, tier}
+      const locationMap = {};
+      filteredMapData.forEach(item => {
+        const rawLat = item.latitude || item.lat;
+        const rawLng = item.longitude || item.lng;
+        
+        const cleanLat = typeof rawLat === 'string' ? rawLat.replace(',', '.') : rawLat;
+        const cleanLng = typeof rawLng === 'string' ? rawLng.replace(',', '.') : rawLng;
+        
+        const lat = typeof cleanLat === 'string' ? parseFloat(cleanLat) : Number(cleanLat);
+        const lng = typeof cleanLng === 'string' ? parseFloat(cleanLng) : Number(cleanLng);
+        
+        if (!isNaN(lat) && !isNaN(lng)) {
+          locationMap[item.organisation_id] = { 
+            lat, 
+            lng, 
+            state: item.state, 
+            tier: item.tier,
+            organisation: item.organisation 
+          };
+        }
+      });
+
+      // Generate connection lines, hindari duplikasi
+      const lines = [];
+      const processedConnections = new Set();
+
+      filteredMapData.forEach(item => {
+        const source = locationMap[item.organisation_id];
+        if (!source || !item.connections || !Array.isArray(item.connections)) return;
+
+        item.connections.forEach(targetId => {
+          const target = locationMap[targetId];
+          if (!target || targetId === item.organisation_id) return; // Skip self-connection
+
+          // Hindari duplikasi dengan membuat key unik
+          const connectionKey = [item.organisation_id, targetId].sort().join('-');
+          if (processedConnections.has(connectionKey)) return;
+          processedConnections.add(connectionKey);
+
+          // Tentukan style berdasarkan tier dan state - warna smooth dan lembut
+          let lineColor = '#5DADE2'; // Soft blue default
+          let lineWeight = 4; 
+          let lineOpacity = 0.75; // Lebih lembut
+          let dashArray = undefined;
+
+          // Color berdasarkan state connection - warna smooth tapi terang
+          if (source.state === target.state) {
+            lineColor = '#58D68D'; // Soft emerald green untuk same state
+            lineOpacity = 0.8; 
+          } else {
+            lineColor = '#F1948A'; // Soft coral pink untuk different state
+            lineOpacity = 0.75; 
+          }
+
+          // Weight berdasarkan tier difference - tetap tebal untuk visibility
+          if (source.tier && target.tier) {
+            const tierDiff = Math.abs(Number(source.tier) - Number(target.tier));
+            if (tierDiff === 0) {
+              lineWeight = 5; // Same tier = thick line (sedikit kurangi untuk smooth look)
+            } else if (tierDiff === 1) {
+              lineWeight = 4; // Close tier = medium line 
+            } else {
+              lineWeight = 3; // Different tier = thin line
+              dashArray = '6,3'; // Lebih halus dashes
+            }
+          }
+
+          lines.push({
+            positions: [[source.lat, source.lng], [target.lat, target.lng]],
+            color: lineColor,
+            weight: lineWeight,
+            opacity: lineOpacity,
+            dashArray: dashArray,
+            sourceInfo: { id: item.organisation_id, name: source.organisation, state: source.state, tier: source.tier },
+            targetInfo: { id: targetId, name: target.organisation, state: target.state, tier: target.tier },
+            connectionId: connectionKey // Unique identifier untuk connection
+          });
+          
+          // Debug logging untuk melihat data connection yang dibuat
+          if (lines.length <= 3) { // Hanya log 3 connection pertama untuk debugging
+            console.log('Connection created:', {
+              sourceId: item.organisation_id,
+              sourceName: source.organisation,
+              targetId: targetId,
+              targetName: target.organisation,
+              connectionKey,
+              sourceIdType: typeof item.organisation_id,
+              targetIdType: typeof targetId
+            });
+          }
+        });
+      });
+
+      // console.log(`Generated ${lines.length} connection lines for ${filteredMapData.length} organizations`); // Disabled for performance
+      return lines;
+    }, [showConnections, selectedMenu?.menu, filteredMapData]);
+
+    // Helper function untuk menentukan apakah marker harus di-highlight (only when clicked)
+    const getMarkerStyle = useCallback((organisationId) => {
+      // Only highlight if this specific marker is clicked
+      return clickedMarkerId === organisationId;
+    }, [clickedMarkerId]);
+
+    // Debounced click handler untuk menghindari multiple rapid clicks
+    const handleMarkerClick = useCallback((organisationId) => {
+      // Debug logging for marker click
+      console.log('Marker clicked:', {
+        organisationId,
+        type: typeof organisationId,
+        clickedMarkerId,
+        willToggle: clickedMarkerId === organisationId ? 'deselect' : 'select'
+      });
+      
+      // Toggle clicked state - if already clicked, unclick; otherwise set as clicked
+      setClickedMarkerId(prev => prev === organisationId ? null : organisationId);
+      // Don't reset connection selection when clicking marker - let both coexist
+      // setClickedConnectionId(null);
+    }, [clickedMarkerId]);
+
+    // Handler untuk click pada connection line
+    const handleConnectionClick = useCallback((connectionId) => {
+      // Toggle clicked state untuk connection
+      setClickedConnectionId(prev => prev === connectionId ? null : connectionId);
+      // Reset marker selection when clicking connection
+      setClickedMarkerId(null);
+    }, []);
+
   return (
     <div style={{ position: 'relative', height: '100vh' }}>
           {loading && (
@@ -498,12 +740,117 @@ const MainMap = ({ selectedCountry, selectedSettlement, selectedMenu, selectedSt
           )}
 
           {selectedMenu?.menu === "Map" && (
+            <div style={{ position: 'relative', height: '100vh' }}>
+              {/* Control Panel untuk Network Connections */}
+              <div style={{
+                position: 'absolute',
+                top: '15px',
+                right: '15px',
+                zIndex: 1000,
+                background: 'rgba(255, 255, 255, 0.95)',
+                padding: '12px 16px',
+                borderRadius: '10px',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                border: '1px solid rgba(15, 179, 186, 0.2)',
+                minWidth: '200px',
+                fontFamily: 'system-ui, -apple-system, sans-serif'
+              }}>
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    fontSize: '13px', 
+                    fontWeight: '600', 
+                    color: '#0FB3BA',
+                    cursor: 'pointer' 
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={showConnections}
+                      onChange={(e) => setShowConnections(e.target.checked)}
+                      style={{ 
+                        accentColor: '#0FB3BA',
+                        transform: 'scale(1.1)'
+                      }}
+                    />
+                    🔗 Show Network Connections
+                  </label>
+                </div>
+                
+                {showConnections && (
+                  <div style={{ fontSize: '11px', color: '#666', lineHeight: '1.4' }}>
+                    {mapZoom < CONNECTION_MIN_ZOOM ? (
+                      <div style={{ 
+                        color: '#ff9800', 
+                        fontWeight: '500',
+                        padding: '4px 8px',
+                        backgroundColor: '#fff3e0',
+                        borderRadius: '6px',
+                        border: '1px solid #ffcc02'
+                      }}>
+                        ⚠️ Zoom in to level {CONNECTION_MIN_ZOOM}+ to view connections
+                      </div>
+                    ) : (
+                      <div style={{ 
+                        color: '#0FB3BA', 
+                        fontWeight: '500',
+                        padding: '4px 8px',
+                        backgroundColor: '#f0f9ff',
+                        borderRadius: '6px',
+                        border: '1px solid #0FB3BA'
+                      }}>
+                        ✅ Showing {connectionLines.length} connection{connectionLines.length !== 1 ? 's' : ''}
+                      </div>
+                    )}
+                    
+                    <div style={{ marginTop: '6px', fontSize: '10px' }}>
+                      <div style={{ color: '#58D68D', fontWeight: 'bold' }}>🟢 Same State (Soft Green)</div>
+                      <div style={{ color: '#F1948A', fontWeight: 'bold' }}>🔴 Different State (Soft Coral)</div>
+                      <div style={{ color: '#666' }}>━━━ Same Tier • ┅┅┅ Different Tier</div>
+                      {clickedConnectionId && (
+                        <div style={{ 
+                          marginTop: '6px', 
+                          padding: '4px 6px', 
+                          backgroundColor: '#fff3e0', 
+                          borderRadius: '4px',
+                          border: '1px solid #ffcc02'
+                        }}>
+                          <div style={{ color: '#FF6B6B', fontWeight: 'bold', fontSize: '9px' }}>
+                            🔗 Connection Selected
+                          </div>
+                          <div style={{ color: '#856404', fontSize: '8px' }}>
+                            Click again to deselect
+                          </div>
+                        </div>
+                      )}
+                      {clickedMarkerId && (
+                        <div style={{ 
+                          marginTop: '6px', 
+                          padding: '4px 6px', 
+                          backgroundColor: '#fff3e0', 
+                          borderRadius: '4px',
+                          border: '1px solid #FFA500'
+                        }}>
+                          <div style={{ color: '#FFA500', fontWeight: 'bold', fontSize: '9px' }}>
+                            📍 Marker Selected - Connected Lines Highlighted
+                          </div>
+                          <div style={{ color: '#856404', fontSize: '8px' }}>
+                            Orange lines show connections
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <MapContainer
                 ref={mapRef}
                 center={center}
                 zoom={zoom}
                 scrollWheelZoom={true}
-                style={{ flex: 1, borderRadius: '10px', overflow: 'hidden' }}
+                style={{ height: '100vh', borderRadius: '10px', overflow: 'hidden' }}
               >
                 <TileLayer
                   attribution='&copy; <a href="https://www.esri.com">Esri</a> contributors'
@@ -511,113 +858,126 @@ const MainMap = ({ selectedCountry, selectedSettlement, selectedMenu, selectedSt
                   maxZoom={19}
                 />
 
-                {/* Debug info */}
-                {console.log(`Map Menu - Total data items: ${data.length} | Filtered: ${filteredMapData.length}`)}
-                { (selectedStates.length || selectedTiers.length || selectedTypes.length) > 0 && console.log('Active Map Filters:', {selectedStates, selectedTiers, selectedTypes}) }
+                {/* Zoom listener untuk update mapZoom state */}
+                <MapZoomListener onZoomChange={setMapZoom} />
+
+                {/* Connection Lines - render sebelum markers agar markers berada di atas */}
+                {showConnections && mapZoom >= CONNECTION_MIN_ZOOM && connectionLines.map((line, index) => {
+                  const styledLine = getConnectionStyle(line);
+                  return (
+                    <Polyline
+                      key={`connection-${line.sourceInfo.id}-${line.targetInfo.id}-${index}`}
+                      positions={styledLine.positions}
+                      pathOptions={{
+                        color: styledLine.color,
+                        weight: styledLine.weight,
+                        opacity: styledLine.opacity,
+                        dashArray: styledLine.dashArray,
+                        lineCap: 'round',
+                        lineJoin: 'round'
+                      }}
+                      eventHandlers={{
+                        mouseover: () => setHoveredConnectionId(line.connectionId),
+                        mouseout: () => setHoveredConnectionId(null),
+                        click: () => handleConnectionClick(line.connectionId)
+                      }}
+                    >
+                      <Tooltip direction="center" permanent={false} sticky={true}>
+                        <div style={{ fontSize: '11px', lineHeight: '1.3' }}>
+                          <strong>🔗 Connection {clickedConnectionId === line.connectionId ? '(Selected)' : ''}</strong><br />
+                          <span style={{ color: '#0FB3BA' }}>
+                            {line.sourceInfo.name} (T{line.sourceInfo.tier})
+                          </span><br />
+                          <span style={{ color: '#666' }}>↕️</span><br />
+                          <span style={{ color: '#0FB3BA' }}>
+                            {line.targetInfo.name} (T{line.targetInfo.tier})
+                          </span><br />
+                          <small style={{ color: '#666' }}>
+                            {line.sourceInfo.state === line.targetInfo.state ? 'Same State' : 'Cross-State'}
+                          </small>
+                          {clickedConnectionId === line.connectionId && (
+                            <><br /><small style={{ color: '#FF6B6B', fontWeight: 'bold' }}>
+                              🔴 Click to deselect
+                            </small></>
+                          )}
+                          {clickedMarkerId && (line.sourceInfo.id === clickedMarkerId || line.targetInfo.id === clickedMarkerId) && (
+                            <><br /><small style={{ color: '#FFA500', fontWeight: 'bold' }}>
+                              🟠 Connected to selected marker
+                            </small></>
+                          )}
+                        </div>
+                      </Tooltip>
+                    </Polyline>
+                  );
+                })}
+
+                {/* Debug info - commented out for performance */}
+                {/* {console.log(`Map Menu - Total data items: ${data.length} | Filtered: ${filteredMapData.length} | Connections: ${connectionLines.length}`)} */}
+                {/* { (selectedStates.length || selectedTiers.length || selectedTypes.length) > 0 && console.log('Active Map Filters:', {selectedStates, selectedTiers, selectedTypes}) } */}
                 
-                {/* Render markers using direct lat/lng coordinates for accuracy */}
-                {filteredMapData.map((item, index) => {
-                  // Prioritas: gunakan lat/lng langsung (lebih akurat dari GPS)
-                  // Ensure proper decimal parsing by handling string values correctly
-                  const rawLat = item.latitude || item.lat;
-                  const rawLng = item.longitude || item.lng;
+                {/* Render markers using pre-processed data for better performance */}
+                {processedMarkerData.map((item) => {
+                  const isHighlighted = getMarkerStyle(item.organisation_id);
                   
-                  // Handle comma decimal separator (convert to period)
-                  const cleanLat = typeof rawLat === 'string' ? rawLat.replace(',', '.') : rawLat;
-                  const cleanLng = typeof rawLng === 'string' ? rawLng.replace(',', '.') : rawLng;
-                  
-                  const lat = typeof cleanLat === 'string' ? parseFloat(cleanLat) : Number(cleanLat);
-                  const lng = typeof cleanLng === 'string' ? parseFloat(cleanLng) : Number(cleanLng);
-                  
-                  // Enhanced debug logging untuk melihat data yang di-filter
-                  console.log(`Map Menu - Checking item ${index}:`, {
-                    id: item.organisation_id,
-                    org: item.organisation,
-                    rawLat,
-                    rawLng,
-                    cleanLat,
-                    cleanLng,
-                    lat,
-                    lng,
-                    latType: typeof rawLat,
-                    lngType: typeof rawLng,
-                    hasValidCoords: !isNaN(lat) && !isNaN(lng),
-                    notZero: !(lat === 0 && lng === 0)
-                  });
-                  
-                  // Relaxed condition: tampilkan jika koordinat valid, termasuk yang 0,0
-                  if (!isNaN(lat) && !isNaN(lng)) {
-                    
-                    return (
-                      <Marker
-                        key={`map-marker-${item.organisation_id || index}`}
-                        position={[lat, lng]}
-                        icon={createMarkerIcon(false)}
-                        zIndexOffset={0}
+                  return (
+                    <Marker
+                      key={`map-marker-${item.organisation_id || item.index}`}
+                      position={[item.lat, item.lng]}
+                      icon={createMarkerIcon(isHighlighted)}
+                      zIndexOffset={isHighlighted ? 1000 : 0}
+                      eventHandlers={{
+                        click: () => handleMarkerClick(item.organisation_id)
+                      }}
+                    >
+                      <Popup
+                        closeButton={true}
+                        autoClose={false}
+                        keepInView={true}
+                        autoPan={true}
                       >
-                        <Popup
-                          closeButton={true}
-                          autoClose={false}
-                          keepInView={true}
-                          autoPan={true}
-                        >
-                          <div style={{ minWidth: '250px' }}>
-                            <h3 style={{ 
-                              margin: '0 0 15px 0', 
-                              color: '#0FB3BA', 
-                              fontSize: '18px', 
-                              fontWeight: '700', 
-                              borderBottom: '2px solid #0FB3BA', 
-                              paddingBottom: '5px' 
+                        <div style={{ minWidth: '250px' }}>
+                          <h3 style={{ 
+                            margin: '0 0 15px 0', 
+                            color: '#0FB3BA', 
+                            fontSize: '18px', 
+                            fontWeight: '700', 
+                            borderBottom: '2px solid #0FB3BA', 
+                            paddingBottom: '5px' 
+                          }}>
+                            🏢 {item.organisation || 'Unknown Organisation'}
+                          </h3>
+                          <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
+                            <p><strong>ID:</strong> {item.organisation_id || item.index}</p>
+                            <p><strong>Tier:</strong> {item.tier || 'N/A'}</p>
+                            <p><strong>Type:</strong> {item.organisation_type || 'N/A'}</p>
+                            <p><strong>State:</strong> {item.state || 'N/A'}</p>
+                            <p><strong>Address:</strong> {item.address || 'No address available'}</p>
+                            {item.comments && item.comments.trim() && (
+                              <p><strong>Comments:</strong> {item.comments}</p>
+                            )}
+                            <div style={{ 
+                              marginTop: '12px', 
+                              padding: '8px', 
+                              backgroundColor: (item.lat === 0 && item.lng === 0 ? '#fff3cd' : '#f0f9ff'), 
+                              borderRadius: '6px', 
+                              border: `1px solid ${(item.lat === 0 && item.lng === 0 ? '#ffc107' : '#0FB3BA')}` 
                             }}>
-                              🏢 {item.organisation || 'Unknown Organisation'}
-                            </h3>
-                            <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
-                              <p><strong>ID:</strong> {item.organisation_id || index}</p>
-                              <p><strong>Tier:</strong> {item.tier || 'N/A'}</p>
-                              <p><strong>Type:</strong> {item.organisation_type || 'N/A'}</p>
-                              <p><strong>State:</strong> {item.state || 'N/A'}</p>
-                              <p><strong>Address:</strong> {item.address || 'No address available'}</p>
-                              {item.comments && item.comments.trim() && (
-                                <p><strong>Comments:</strong> {item.comments}</p>
-                              )}
-                              <div style={{ 
-                                marginTop: '12px', 
-                                padding: '8px', 
-                                backgroundColor: (lat === 0 && lng === 0 ? '#fff3cd' : '#f0f9ff'), 
-                                borderRadius: '6px', 
-                                border: `1px solid ${(lat === 0 && lng === 0 ? '#ffc107' : '#0FB3BA')}` 
-                              }}>
-                                <p style={{ margin: '0', fontSize: '12px', color: (lat === 0 && lng === 0 ? '#856404' : '#0369a1') }}>
-                                  <strong>📍 GPS Coordinates:</strong><br />
-                                  Lat: {lat.toFixed(6)}, Lng: {lng.toFixed(6)}
-                                  {lat === 0 && lng === 0 && (
-                                    <><br /><span style={{ fontStyle: 'italic' }}>⚠️ Default coordinates - location may need verification</span></>
-                                  )}
-                                </p>
-                              </div>
+                              <p style={{ margin: '0', fontSize: '12px', color: (item.lat === 0 && item.lng === 0 ? '#856404' : '#0369a1') }}>
+                                <strong>📍 GPS Coordinates:</strong><br />
+                                Lat: {item.lat.toFixed(6)}, Lng: {item.lng.toFixed(6)}
+                                {item.lat === 0 && item.lng === 0 && (
+                                  <><br /><span style={{ fontStyle: 'italic' }}>⚠️ Default coordinates - location may need verification</span></>
+                                )}
+                              </p>
                             </div>
                           </div>
-                        </Popup>
-                        <Tooltip direction="top" offset={[0, -10]} opacity={0.9}>
-                          <span style={{ 
-                            fontSize: '12px', 
-                            fontWeight: '600', 
-                            backgroundColor: (lat === 0 && lng === 0 ? '#ffc107' : '#0FB3BA'),
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            color: 'white'
-                          }}>
-                            {item.organisation || 'Unknown'}
-                            {lat === 0 && lng === 0 && ' ⚠️'}
-                          </span>
-                        </Tooltip>
-                      </Marker>
-                    );
-                  }
-                  return null;
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
                 })}
               </MapContainer>
+            </div>
           )}
 
           {selectedMenu?.menu === "Network" && (
@@ -661,6 +1021,7 @@ const MainMap = ({ selectedCountry, selectedSettlement, selectedMenu, selectedSt
                   data={data} 
                   loading={loading} 
                   onNavigateToMap={handleNavigateToMap}
+                  onDataChange={setData}
                   // selectedOrganisation={selectedOrganisation} // Pass selected organisation untuk highlighting
                 />
               ) : (
@@ -701,8 +1062,8 @@ const MainMap = ({ selectedCountry, selectedSettlement, selectedMenu, selectedSt
                       onPopupOpened={() => setShouldOpenPopup(false)} 
                     />
 
-                    {/* Debug info */}
-                    {console.log(`DataTable Map Preview - Total data items: ${data.length}`)}
+                    {/* Debug info - commented out for performance */}
+                    {/* {console.log(`DataTable Map Preview - Total data items: ${data.length}`)} */}
 
                     {/* Render markers for data points using direct lat/lng */}
                     {filteredMapData.map((item, index) => {
@@ -718,21 +1079,8 @@ const MainMap = ({ selectedCountry, selectedSettlement, selectedMenu, selectedSt
                       const lat = typeof cleanLat === 'string' ? parseFloat(cleanLat) : Number(cleanLat);
                       const lng = typeof cleanLng === 'string' ? parseFloat(cleanLng) : Number(cleanLng);
                       
-                      // Enhanced debug logging untuk melihat data yang di-filter
-                      console.log(`DataTable Map Preview - Checking item ${index}:`, {
-                        id: item.organisation_id,
-                        org: item.organisation,
-                        rawLat,
-                        rawLng,
-                        cleanLat,
-                        cleanLng,
-                        lat,
-                        lng,
-                        latType: typeof rawLat,
-                        lngType: typeof rawLng,
-                        hasValidCoords: !isNaN(lat) && !isNaN(lng),
-                        notZero: !(lat === 0 && lng === 0)
-                      });
+                      // Enhanced debug logging untuk melihat data yang di-filter (disabled for performance)
+                      // console.log(`DataTable Map Preview - Checking item ${index}:`, { id: item.organisation_id, org: item.organisation });
                       
                       // Relaxed condition: tampilkan jika koordinat valid, termasuk yang 0,0
                       if (!isNaN(lat) && !isNaN(lng)) {

@@ -16,8 +16,10 @@ import {
   InputAdornment,
   Stack,
   Card,
-  CardContent
+  CardContent,
+  Button // added Button
 } from '@mui/material';
+import { toast } from 'react-toastify';
 import {
   DataGrid,
   GridColDef,
@@ -33,8 +35,15 @@ import {
   TableView as TableIcon,
   Clear as ClearIcon,
   LocationOn as LocationIcon,
-  Launch as LaunchIcon
+  Launch as LaunchIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Add as AddIcon // added Add icon
 } from '@mui/icons-material';
+
+// Import CRUD components
+import OrganisationModal from './OrganisationModal';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 // Custom Toolbar untuk DataGrid dengan auto-resize
 function CustomToolbar({ onAutoResize }) {
@@ -129,18 +138,209 @@ const StatusChip = ({ status }) => {
   );
 };
 
-const DataTable = ({ data, loading, onNavigateToMap }) => {
+const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterState, setFilterState] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [columnWidths, setColumnWidths] = useState({});
-
+  
+  // CRUD Modal states
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [isOrganisationModalOpen, setIsOrganisationModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [editingOrganisation, setEditingOrganisation] = useState(null);
+  const [deleteItems, setDeleteItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // NEW: stable pagination model (v8 API)
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+  
   // Get unique states for filter
   const states = useMemo(() => {
     if (!data?.length) return [];
     const uniqueStates = [...new Set(data.map(item => item.state))].filter(Boolean);
     return uniqueStates.sort();
   }, [data]);
+
+  // CRUD Handler Functions
+  const handleAddClick = useCallback(() => {
+    setEditingOrganisation(null);
+    setIsOrganisationModalOpen(true);
+  }, []);
+
+  const handleEditClick = useCallback(() => {
+    if (selectedRows.length === 1) {
+      const selectedData = data.find(item => item.organisation_id === selectedRows[0]);
+      setEditingOrganisation(selectedData);
+      setIsOrganisationModalOpen(true);
+    }
+  }, [selectedRows, data]);
+
+  const handleDeleteClick = useCallback(() => {
+    if (selectedRows.length > 0) {
+      const itemsToDelete = data.filter(item => 
+        selectedRows.includes(item.organisation_id)
+      );
+      setDeleteItems(itemsToDelete);
+      setIsDeleteModalOpen(true);
+    }
+  }, [selectedRows, data]);
+
+  const handleSaveOrganisation = useCallback(async (formData, isEdit) => {
+    setIsLoading(true);
+    try {
+      const url = '/api/map';
+      const method = isEdit ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save organisation');
+      }
+
+      const savedData = await response.json();
+      
+      // Update local data and notify parent
+      if (onDataChange) {
+        if (isEdit) {
+          const updatedData = data.map(item => 
+            item.organisation_id === savedData.organisation_id ? savedData : item
+          );
+          onDataChange(updatedData);
+        } else {
+          onDataChange([...data, savedData]);
+        }
+      }
+
+      setIsOrganisationModalOpen(false);
+      setEditingOrganisation(null);
+      setSelectedRows([]);
+      
+      // Show success toast notification
+      if (isEdit) {
+        toast.success(`Organisation "${savedData.organisation}" updated successfully!`, {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      } else {
+        toast.success(`Organisation "${savedData.organisation}" added successfully!`, {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
+      
+      return savedData;
+    } catch (error) {
+      console.error('Error saving organisation:', error);
+      // Show error toast notification
+      if (isEdit) {
+        toast.error(`❌ Failed to update organisation: ${error.message}`, {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      } else {
+        toast.error(`❌ Failed to add organisation: ${error.message}`, {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [data, onDataChange]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Delete multiple items
+      const deletePromises = deleteItems.map(item =>
+        fetch(`/api/map?id=${item.organisation_id}`, {
+          method: 'DELETE',
+        })
+      );
+
+      const responses = await Promise.all(deletePromises);
+      
+      // Check if all deletions were successful
+      const failures = responses.filter(response => !response.ok);
+      if (failures.length > 0) {
+        throw new Error(`Failed to delete ${failures.length} items`);
+      }
+
+      // Update local data
+      if (onDataChange) {
+        const remainingData = data.filter(item => 
+          !deleteItems.some(deleteItem => deleteItem.organisation_id === item.organisation_id)
+        );
+        onDataChange(remainingData);
+      }
+
+      setIsDeleteModalOpen(false);
+      setDeleteItems([]);
+      setSelectedRows([]);
+      
+      // Show success toast notification
+      const deletedCount = deleteItems.length;
+      const deletedNames = deleteItems.map(item => item.organisation).join(', ');
+      if (deletedCount === 1) {
+        toast.success(`Organisation "${deletedNames}" deleted successfully!`, {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      } else {
+        toast.success(`${deletedCount} organisations deleted successfully!`, {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting organisations:', error);
+      // Show error toast notification
+      toast.error(`❌ Failed to delete organisation(s): ${error.message}`, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [deleteItems, data, onDataChange]);
 
   // Auto-resize columns based on content
   const handleAutoResize = () => {
@@ -218,409 +418,365 @@ const DataTable = ({ data, loading, onNavigateToMap }) => {
     }
   }, [onNavigateToMap]);
 
+  const openEditRow = useCallback((row) => {
+    if (!row) return;
+    // Ambil data lengkap dari sumber asli agar field connections & tier tidak hilang
+    const full = data.find(d => d.organisation_id === row.organisation_id) || row;
+    let connections = full.connections;
+    if (typeof connections === 'string') {
+      try {
+        const parsed = JSON.parse(connections);
+        connections = parsed;
+      } catch {
+        // ignore parse error
+      }
+    }
+    if (!Array.isArray(connections)) connections = [];
+    const normalised = { ...full, connections };
+    setEditingOrganisation(normalised);
+    setIsOrganisationModalOpen(true);
+  }, [data]);
+  const openDeleteRow = useCallback((row) => {
+    if (!row) return;
+    setDeleteItems([row]);
+    setIsDeleteModalOpen(true);
+  }, []);
+
   // Define columns for DataGrid with dynamic widths
-  const columns = useMemo(() => [
-    {
-      field: 'organisation_id',
-      headerName: 'ID',
-      width: columnWidths.organisation_id || 80,
-      minWidth: 60,
-      maxWidth: 100,
-      type: 'number',
-      headerAlign: 'center',
-      align: 'center',
-      flex: 0,
-      resizable: true,
-      renderCell: (params) => (
-        <Chip 
-          label={params.value || '-'}
-          size="small"
-          variant="outlined"
-          color="primary"
-          sx={{ 
-            fontWeight: 600, 
-            fontSize: '10px',
-            height: 20,
-            '& .MuiChip-label': {
-              px: 0.8
-            }
-          }}
-        />
-      ),
-    },
-    {
-      field: 'organisation',
-      headerName: 'Organisation',
-      width: columnWidths.organisation || 200,
-      minWidth: 150,
-      maxWidth: 350,
-      flex: 0.3,
-      headerAlign: 'left',
-      align: 'left',
-      resizable: true,
-      renderCell: (params) => (
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'flex-start', 
-          gap: 1,
-          height: '100%',
-          py: 0.5,
-          width: '100%'
-        }}>
-          <Box sx={{
-            width: 4,
-            height: 4,
-            borderRadius: '50%',
-            backgroundColor: '#0FB3BA',
-            flexShrink: 0,
-            mt: 0.5
-          }} />
-          <Typography 
-            variant="body2" 
-            fontWeight="600" 
-            sx={{ 
-              color: '#2c3e50',
-              fontSize: '11px',
-              lineHeight: 1.3,
-              wordBreak: 'break-word',
-              overflow: 'hidden',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              flex: 1
-            }}
-            title={params.value || '-'}
-          >
-            {params.value || '-'}
-          </Typography>
-        </Box>
-      ),
-    },
-    {
-      field: 'state',
-      headerName: 'State',
-      width: columnWidths.state || 120,
-      minWidth: 100,
-      maxWidth: 150,
-      headerAlign: 'center',
-      align: 'center',
-      flex: 0,
-      resizable: true,
-      renderCell: (params) => <StatusChip status={params.value} />,
-    },
-    {
-      field: 'tier',
-      headerName: 'Tier',
-      width: columnWidths.tier || 140,
-      minWidth: 70,
-      maxWidth: 100,
-      headerAlign: 'center',
-      align: 'center',
-      flex: 0,
-      resizable: true,
-      renderCell: (params) => {
-        const tier = params.value;
-        const getTierColor = (tier) => {
-          switch(tier) {
-            case 1: return '#ff6b6b';
-            case 2: return '#4ecdc4';
-            case 3: return '#45b7d1';
-            default: return '#95a5a6';
-          }
-        };
-        
-        return (
-          <Chip
-            label={tier ? `T${tier}` : '-'}
+  const columns = useMemo(() => {
+    const base = [
+      {
+        field: 'organisation_id',
+        headerName: 'ID',
+        width: columnWidths.organisation_id || 80,
+        minWidth: 60,
+        maxWidth: 100,
+        type: 'number',
+        headerAlign: 'center',
+        align: 'center',
+        flex: 0,
+        resizable: true,
+        renderCell: (params) => (
+          <Chip 
+            label={params.value || '-'}
             size="small"
-            sx={{
-              backgroundColor: getTierColor(tier),
-              color: 'white',
-              fontWeight: 600,
+            variant="outlined"
+            color="primary"
+            sx={{ 
+              fontWeight: 600, 
               fontSize: '10px',
               height: 20,
-              minWidth: '40px',
-              '& .MuiChip-label': {
-                px: 0.8
-              }
+              '& .MuiChip-label': { px: 0.8 }
             }}
           />
-        );
+        ),
       },
-    },
-    {
-      field: 'organisation_type',
-      headerName: 'Type',
-      width: columnWidths.organisation_type || 140,
-      minWidth: 120,
-      maxWidth: 220,
-      flex: 0.2,
-      headerAlign: 'left',
-      align: 'left',
-      resizable: true,
-      renderCell: (params) => (
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'flex-start',
-          height: '100%',
-          py: 0.5,
-          width: '100%'
-        }}>
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              color: '#34495e',
-              fontWeight: 500,
-              backgroundColor: '#ecf0f1',
-              padding: '2px 6px',
-              borderRadius: 1,
-              fontSize: '10px',
-              lineHeight: 1.2,
-              wordBreak: 'break-word',
-              overflow: 'hidden',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              width: '100%'
-            }}
-            title={params.value || '-'}
-          >
-            {params.value || '-'}
-          </Typography>
-        </Box>
-      ),
-    },
-    // {
-    //   field: 'address',
-    //   headerName: 'Address',
-    //   width: columnWidths.address || 250,
-    //   minWidth: 200,
-    //   maxWidth: 400,
-    //   flex: 0.4,
-    //   headerAlign: 'left',
-    //   align: 'left',
-    //   resizable: true,
-    //   renderCell: (params) => (
-    //     <Box sx={{ 
-    //       display: 'flex', 
-    //       alignItems: 'flex-start',
-    //       height: '100%',
-    //       py: 0.5,
-    //       width: '100%'
-    //     }}>
-    //       <Typography 
-    //         variant="body2" 
-    //         sx={{ 
-    //           color: '#2c3e50',
-    //           fontSize: '11px',
-    //           lineHeight: 1.3,
-    //           wordBreak: 'break-word',
-    //           overflow: 'hidden',
-    //           display: '-webkit-box',
-    //           WebkitLineClamp: 2,
-    //           WebkitBoxOrient: 'vertical',
-    //           width: '100%'
-    //         }}
-    //         title={params.value || '-'}
-    //       >
-    //         {params.value || '-'}
-    //       </Typography>
-    //     </Box>
-    //   ),
-    // },
-    // {
-    //   field: 'comments',
-    //   headerName: 'Comments',
-    //   width: columnWidths.comments || 200,
-    //   minWidth: 150,
-    //   maxWidth: 350,
-    //   flex: 0.3,
-    //   headerAlign: 'left',
-    //   align: 'left',
-    //   resizable: true,
-    //   renderCell: (params) => {
-    //     const comments = params.value && params.value.trim() ? params.value : '-';
-    //     const hasComments = comments !== '-';
-        
-    //     return (
-    //       <Box sx={{ 
-    //         display: 'flex', 
-    //         alignItems: 'flex-start', 
-    //         gap: 0.5,
-    //         height: '100%',
-    //         py: 0.5,
-    //         width: '100%'
-    //       }}>
-    //         {hasComments && (
-    //           <Box sx={{
-    //             width: 3,
-    //             height: 3,
-    //             borderRadius: '50%',
-    //             backgroundColor: '#27ae60',
-    //             flexShrink: 0,
-    //             mt: 0.5
-    //           }} />
-    //         )}
-    //         <Typography 
-    //           variant="body2" 
-    //           sx={{ 
-    //             color: hasComments ? '#2c3e50' : '#95a5a6',
-    //             fontSize: '11px',
-    //             fontStyle: hasComments ? 'normal' : 'italic',
-    //             lineHeight: 1.3,
-    //             wordBreak: 'break-word',
-    //             overflow: 'hidden',
-    //             display: '-webkit-box',
-    //             WebkitLineClamp: 2,
-    //             WebkitBoxOrient: 'vertical',
-    //             flex: 1
-    //           }}
-    //           title={comments}
-    //         >
-    //           {comments}
-    //         </Typography>
-    //       </Box>
-    //     );
-    //   },
-    // },
-    {
-      field: 'latitude',
-      headerName: 'Latitude',
-      width: columnWidths.latitude || 120,
-      minWidth: 100,
-      maxWidth: 150,
-      flex: 0,
-      headerAlign: 'center',
-      align: 'center',
-      resizable: true,
-      type: 'number',
-      renderCell: (params) => {
-        const lat = params.value;
-        const isValid = lat !== null && lat !== undefined && !isNaN(lat) && lat !== 0;
-        const hasDuplicate = params.row.hasDuplicateCoordinates;
-        
-        return (
+      {
+        field: 'organisation',
+        headerName: 'Organisation',
+        width: columnWidths.organisation || 200,
+        minWidth: 150,
+        maxWidth: 350,
+        flex: 0.3,
+        headerAlign: 'left',
+        align: 'left',
+        resizable: true,
+        renderCell: (params) => (
           <Box sx={{ 
             display: 'flex', 
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: 'flex-start', 
+            gap: 1,
             height: '100%',
+            py: 0.5,
             width: '100%'
           }}>
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: hasDuplicate ? 'white' : (isValid ? '#2c3e50' : '#e74c3c'),
-                fontSize: '11px',
-                fontWeight: 500,
-                fontFamily: 'monospace',
-                backgroundColor: hasDuplicate ? '#e74c3c' : (isValid ? '#e8f5e8' : '#ffeaea'),
-                padding: '4px 8px',
-                borderRadius: 1,
-                border: hasDuplicate ? '1px solid #c0392b' : (isValid ? '1px solid #27ae60' : '1px solid #e74c3c'),
-                minWidth: '80px',
-                textAlign: 'center',
-                boxShadow: hasDuplicate ? '0 2px 4px rgba(231, 76, 60, 0.3)' : 'none'
-              }}
-              title={hasDuplicate ? `⚠️ Duplicate coordinates detected: ${lat?.toFixed(6)}` : (isValid ? `Latitude: ${lat?.toFixed(6)}` : 'Invalid coordinates')}
-            >
-              {hasDuplicate ? `🚨 ${lat.toFixed(6)}` : (isValid ? lat.toFixed(6) : '⚠️ N/A')}
-            </Typography>
-          </Box>
-        );
-      },
-    },
-    {
-      field: 'longitude',
-      headerName: 'Longitude',
-      width: columnWidths.longitude || 120,
-      minWidth: 100,
-      maxWidth: 150,
-      flex: 0,
-      headerAlign: 'center',
-      align: 'center',
-      resizable: true,
-      type: 'number',
-      renderCell: (params) => {
-        const lng = params.value;
-        const isValid = lng !== null && lng !== undefined && !isNaN(lng) && lng !== 0;
-        const hasDuplicate = params.row.hasDuplicateCoordinates;
-        
-        return (
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            width: '100%'
-          }}>
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: hasDuplicate ? 'white' : (isValid ? '#2c3e50' : '#e74c3c'),
-                fontSize: '11px',
-                fontWeight: 500,
-                fontFamily: 'monospace',
-                backgroundColor: hasDuplicate ? '#e74c3c' : (isValid ? '#e8f5e8' : '#ffeaea'),
-                padding: '4px 8px',
-                borderRadius: 1,
-                border: hasDuplicate ? '1px solid #c0392b' : (isValid ? '1px solid #27ae60' : '1px solid #e74c3c'),
-                minWidth: '80px',
-                textAlign: 'center',
-                boxShadow: hasDuplicate ? '0 2px 4px rgba(231, 76, 60, 0.3)' : 'none'
-              }}
-              title={hasDuplicate ? `⚠️ Duplicate coordinates detected: ${lng?.toFixed(6)}` : (isValid ? `Longitude: ${lng?.toFixed(6)}` : 'Invalid coordinates')}
-            >
-              {hasDuplicate ? `🚨 ${lng.toFixed(6)}` : (isValid ? lng.toFixed(6) : '⚠️ N/A')}
-            </Typography>
-          </Box>
-        );
-      },
-    },
-    {
-      field: 'actions',
-      headerName: 'Map',
-      width: 100,
-      minWidth: 80,
-      maxWidth: 120,
-      flex: 0,
-      headerAlign: 'center',
-      align: 'center',
-      resizable: false,
-      sortable: false,
-      filterable: false,
-      disableColumnMenu: true,
-      renderCell: (params) => (
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          width: '100%'
-        }}>
-          <IconButton
-            size="small"
-            onClick={() => handleNavigateToMap(params.row.organisation_id ? params.row : params.row.fullData)}
-            sx={{
+            <Box sx={{
+              width: 4,
+              height: 4,
+              borderRadius: '50%',
               backgroundColor: '#0FB3BA',
-              color: 'white',
-              width: 32,
-              height: 32,
-              '&:hover': {
-                backgroundColor: '#0a9aa1',
-                transform: 'scale(1.1)',
-              },
-              transition: 'all 0.2s ease',
-              boxShadow: '0 2px 8px rgba(15, 179, 186, 0.3)',
-            }}
-            title={`View ${params.row.organisation_id} on map`}
-          >
-            <LocationIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        </Box>
-      ),
-    },
-  ], [columnWidths, handleNavigateToMap]);
+              flexShrink: 0,
+              mt: 0.5
+            }} />
+            <Typography 
+              variant="body2" 
+              fontWeight="600" 
+              sx={{ 
+                color: '#2c3e50',
+                fontSize: '11px',
+                lineHeight: 1.3,
+                wordBreak: 'break-word',
+                overflow: 'hidden',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                flex: 1
+              }}
+              title={params.value || '-'}
+            >
+              {params.value || '-'}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: 'state',
+        headerName: 'State',
+        width: columnWidths.state || 120,
+        minWidth: 100,
+        maxWidth: 150,
+        headerAlign: 'center',
+        align: 'center',
+        flex: 0,
+        resizable: true,
+        renderCell: (params) => <StatusChip status={params.value} />,
+      },
+      {
+        field: 'tier',
+        headerName: 'Tier',
+        width: columnWidths.tier || 140,
+        minWidth: 70,
+        maxWidth: 100,
+        headerAlign: 'center',
+        align: 'center',
+        flex: 0,
+        resizable: true,
+        renderCell: (params) => {
+          const tier = params.value;
+          const getTierColor = (tier) => {
+            switch(tier) {
+              case 1: return '#ff6b6b';
+              case 2: return '#4ecdc4';
+              case 3: return '#45b7d1';
+              default: return '#95a5a6';
+            }
+          };
+          
+          return (
+            <Chip
+              label={tier ? `${tier}` : '-'}
+              size="small"
+              sx={{
+                backgroundColor: getTierColor(tier),
+                color: 'white',
+                fontWeight: 600,
+                fontSize: '10px',
+                height: 20,
+                minWidth: '40px',
+                '& .MuiChip-label': {
+                  px: 0.8
+                }
+              }}
+            />
+          );
+        },
+      },
+      {
+        field: 'organisation_type',
+        headerName: 'Type',
+        width: columnWidths.organisation_type || 140,
+        minWidth: 120,
+        maxWidth: 220,
+        flex: 0.2,
+        headerAlign: 'left',
+        align: 'left',
+        resizable: true,
+        renderCell: (params) => (
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'flex-start',
+            height: '100%',
+            py: 0.5,
+            width: '100%'
+          }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: '#34495e',
+                fontWeight: 500,
+                backgroundColor: '#ecf0f1',
+                padding: '2px 6px',
+                borderRadius: 1,
+                fontSize: '10px',
+                lineHeight: 1.2,
+                wordBreak: 'break-word',
+                overflow: 'hidden',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                width: '100%'
+              }}
+              title={params.value || '-'}
+            >
+              {params.value || '-'}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: 'latitude',
+        headerName: 'Latitude',
+        width: columnWidths.latitude || 120,
+        minWidth: 100,
+        maxWidth: 150,
+        flex: 0,
+        headerAlign: 'center',
+        align: 'center',
+        resizable: true,
+        type: 'number',
+        renderCell: (params) => {
+          const lat = params.value;
+          const isValid = lat !== null && lat !== undefined && !isNaN(lat) && lat !== 0;
+          const hasDuplicate = params.row.hasDuplicateCoordinates;
+          
+          return (
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              width: '100%'
+            }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: hasDuplicate ? 'white' : (isValid ? '#2c3e50' : '#e74c3c'),
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  fontFamily: 'monospace',
+                  backgroundColor: hasDuplicate ? '#e74c3c' : (isValid ? '#e8f5e8' : '#ffeaea'),
+                  padding: '4px 8px',
+                  borderRadius: 1,
+                  border: hasDuplicate ? '1px solid #c0392b' : (isValid ? '1px solid #27ae60' : '1px solid #e74c3c'),
+                  minWidth: '80px',
+                  textAlign: 'center',
+                  boxShadow: hasDuplicate ? '0 2px 4px rgba(231, 76, 60, 0.3)' : 'none'
+                }}
+                title={hasDuplicate ? `⚠️ Duplicate coordinates detected: ${lat?.toFixed(6)}` : (isValid ? `Latitude: ${lat?.toFixed(6)}` : 'Invalid coordinates')}
+              >
+                {hasDuplicate ? `🚨 ${lat.toFixed(6)}` : (isValid ? lat.toFixed(6) : '⚠️ N/A')}
+              </Typography>
+            </Box>
+          );
+        },
+      },
+      {
+        field: 'longitude',
+        headerName: 'Longitude',
+        width: columnWidths.longitude || 120,
+        minWidth: 100,
+        maxWidth: 150,
+        flex: 0,
+        headerAlign: 'center',
+        align: 'center',
+        resizable: true,
+        type: 'number',
+        renderCell: (params) => {
+          const lng = params.value;
+          const isValid = lng !== null && lng !== undefined && !isNaN(lng) && lng !== 0;
+          const hasDuplicate = params.row.hasDuplicateCoordinates;
+          
+          return (
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              width: '100%'
+            }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: hasDuplicate ? 'white' : (isValid ? '#2c3e50' : '#e74c3c'),
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  fontFamily: 'monospace',
+                  backgroundColor: hasDuplicate ? '#e74c3c' : (isValid ? '#e8f5e8' : '#ffeaea'),
+                  padding: '4px 8px',
+                  borderRadius: 1,
+                  border: hasDuplicate ? '1px solid #c0392b' : (isValid ? '1px solid #27ae60' : '1px solid #e74c3c'),
+                  minWidth: '80px',
+                  textAlign: 'center',
+                  boxShadow: hasDuplicate ? '0 2px 4px rgba(231, 76, 60, 0.3)' : 'none'
+                }}
+                title={hasDuplicate ? `⚠️ Duplicate coordinates detected: ${lng?.toFixed(6)}` : (isValid ? `Longitude: ${lng?.toFixed(6)}` : 'Invalid coordinates')}
+              >
+                {hasDuplicate ? `🚨 ${lng.toFixed(6)}` : (isValid ? lng.toFixed(6) : '⚠️ N/A')}
+              </Typography>
+            </Box>
+          );
+        },
+      },
+    ];
+    return [
+      ...base,
+      {
+        field: 'actions',
+        headerName: 'Actions',
+        width: 170,
+        minWidth: 150,
+        maxWidth: 200,
+        headerAlign: 'center',
+        align: 'center',
+        sortable: false,
+        filterable: false,
+        disableColumnMenu: true,
+        renderCell: (params) => {
+          const row = params.row;
+          return (
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <IconButton
+                size="small"
+                onClick={() => handleNavigateToMap(row.organisation_id ? row : row.fullData)}
+                sx={{
+                  backgroundColor: '#0FB3BA',
+                  color: 'white',
+                  width: 30,
+                  height: 30,
+                  '&:hover': { backgroundColor: '#0a9aa1', transform: 'scale(1.1)' },
+                  transition: 'all 0.2s ease',
+                }}
+                title={`View ${row.organisation_id} on map`}
+              >
+                <LocationIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={() => openEditRow(row)}
+                sx={{
+                  backgroundColor: '#2563eb',
+                  color: 'white',
+                  width: 30,
+                  height: 30,
+                  '&:hover': { backgroundColor: '#1d4ed8', transform: 'scale(1.1)' },
+                  transition: 'all 0.2s ease',
+                }}
+                title={`Edit ${row.organisation_id}`}
+              >
+                <EditIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={() => openDeleteRow(row)}
+                sx={{
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  width: 30,
+                  height: 30,
+                  '&:hover': { backgroundColor: '#dc2626', transform: 'scale(1.1)' },
+                  transition: 'all 0.2s ease',
+                }}
+                title={`Delete ${row.organisation_id}`}
+              >
+                <DeleteIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Box>
+          );
+        }
+      }
+    ];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columnWidths, handleNavigateToMap, openEditRow, openDeleteRow]);
 
   // Filter and search data
   const filteredData = useMemo(() => {
@@ -709,6 +865,16 @@ const DataTable = ({ data, loading, onNavigateToMap }) => {
       };
     });
   }, [data, filteredData]);
+  
+  // NEW: defensive rows (prevent undefined causing internal selector crash)
+  const safeRows = useMemo(() => {
+    if (!Array.isArray(rows)) return [];
+    return rows.filter(r => r && (r.organisation_id !== undefined && r.organisation_id !== null) ).map((r, idx) => ({
+      // ensure id always present & stable
+      id: r.organisation_id ?? r.id ?? idx,
+      ...r,
+    }));
+  }, [rows]);
 
   const handleClearFilters = () => {
     setSearchTerm("");
@@ -723,17 +889,18 @@ const DataTable = ({ data, loading, onNavigateToMap }) => {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        position: 'relative'
       }}>
         <Card elevation={24} sx={{ 
           p: 6, 
-          textAlign: 'center', 
-          minWidth: 400,
-          borderRadius: 4,
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)'
-        }}>
+            textAlign: 'center', 
+            minWidth: 400,
+            borderRadius: 4,
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
+          }}>
           <CardContent>
             <Box sx={{ position: 'relative', display: 'inline-flex', mb: 3 }}>
               <TableIcon sx={{ 
@@ -757,7 +924,7 @@ const DataTable = ({ data, loading, onNavigateToMap }) => {
             <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: '#2c3e50' }}>
               🔄 Loading Data Table...
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ fontSize: '16px' }}>
+            <Typography variant="body1" color="text.secondary" sx={{ fontSize: '16px', mb: 2 }}>
               Please wait while we prepare your analytics dashboard
             </Typography>
             <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', gap: 1 }}>
@@ -787,11 +954,8 @@ const DataTable = ({ data, loading, onNavigateToMap }) => {
             50% { opacity: 0.5; }
           }
           @keyframes bounce {
-            0%, 80%, 100% {
-              transform: scale(0);
-            } 40% {
-              transform: scale(1);
-            }
+            0%, 80%, 100% { transform: scale(0); } 
+            40% { transform: scale(1); }
           }
         `}</style>
       </Box>
@@ -806,7 +970,8 @@ const DataTable = ({ data, loading, onNavigateToMap }) => {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        position: 'relative'
       }}>
         <Card elevation={24} sx={{ 
           p: 6, 
@@ -836,9 +1001,27 @@ const DataTable = ({ data, loading, onNavigateToMap }) => {
               borderRadius: 2,
               border: '2px dashed #bdc3c7'
             }}>
-              <Typography variant="body2" color="text.secondary">
-                💡 Try refreshing the page or check your data source
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                💡 You can start by adding a new organisation.
               </Typography>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleAddClick}
+                disabled={isLoading}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 3,
+                  px: 2.5,
+                  backgroundColor: '#0FB3BA',
+                  '&:hover': { backgroundColor: '#0a9aa1' },
+                  boxShadow: '0 4px 12px rgba(15,179,186,0.3)',
+                  mt: 1
+                }}
+              >
+                Add Organisation
+              </Button>
             </Box>
           </CardContent>
         </Card>
@@ -869,6 +1052,7 @@ const DataTable = ({ data, loading, onNavigateToMap }) => {
           border: '1px solid rgba(255, 255, 255, 0.2)'
         }}
       >
+        {/* Removed CRUD Toolbar global section */}
         {/* Modern Header with Gradient */}
         <Box sx={{ 
           background: 'linear-gradient(135deg, #0FB3BA 0%, #1976d2 100%)',
@@ -899,13 +1083,13 @@ const DataTable = ({ data, loading, onNavigateToMap }) => {
           </Box>
         </Box>
 
-        {/* Modern Filters Section */}
+        {/* Modern Filters Section with Add Button */}
         <Box sx={{ 
           p: 3, 
           background: 'linear-gradient(to right, #f8f9fa, #e9ecef)',
           borderBottom: '2px solid #e3f2fd'
         }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ flexWrap: 'wrap' }}>
             <TextField
               size="medium"
               placeholder="🔍 Search across all columns..."
@@ -923,21 +1107,12 @@ const DataTable = ({ data, loading, onNavigateToMap }) => {
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 3,
                   backgroundColor: 'white',
-                  '& fieldset': {
-                    borderColor: '#e0e0e0',
-                    borderWidth: 2,
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#0FB3BA',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#0FB3BA',
-                    borderWidth: 2,
-                  },
+                  '& fieldset': { borderColor: '#e0e0e0', borderWidth: 2 },
+                  '&:hover fieldset': { borderColor: '#0FB3BA' },
+                  '&.Mui-focused fieldset': { borderColor: '#0FB3BA', borderWidth: 2 },
                 },
               }}
             />
-            
             <FormControl size="medium" sx={{ minWidth: 200 }}>
               <InputLabel sx={{ color: '#0FB3BA' }}>🏛️ Filter by State</InputLabel>
               <Select
@@ -947,38 +1122,24 @@ const DataTable = ({ data, loading, onNavigateToMap }) => {
                 sx={{
                   borderRadius: 3,
                   backgroundColor: 'white',
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#e0e0e0',
-                    borderWidth: 2,
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#0FB3BA',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#0FB3BA',
-                    borderWidth: 2,
-                  },
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e0e0e0', borderWidth: 2 },
+                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#0FB3BA' },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#0FB3BA', borderWidth: 2 },
                 }}
               >
                 <MenuItem value="">🌐 All States</MenuItem>
                 {states.map(state => (
-                  <MenuItem key={state} value={state}>
-                    🏛️ {state}
-                  </MenuItem>
+                  <MenuItem key={state} value={state}>🏛️ {state}</MenuItem>
                 ))}
               </Select>
             </FormControl>
-
             {(searchTerm || filterState) && (
               <IconButton 
                 onClick={handleClearFilters}
                 sx={{
                   backgroundColor: '#ff4757',
                   color: 'white',
-                  '&:hover': {
-                    backgroundColor: '#ff3742',
-                    transform: 'scale(1.05)',
-                  },
+                  '&:hover': { backgroundColor: '#ff3742', transform: 'scale(1.05)' },
                   transition: 'all 0.2s ease',
                   borderRadius: 2,
                   p: 1.5
@@ -990,34 +1151,61 @@ const DataTable = ({ data, loading, onNavigateToMap }) => {
             )}
           </Stack>
         </Box>
+        <Box sx={{
+          flexGrow: 1,
+          mt: 2,
+          ml: 2
+        }}>
+          <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAddClick}
+              disabled={isLoading}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                borderRadius: 3,
+                px: 2.5,
+                backgroundColor: '#0FB3BA',
+                '&:hover': { backgroundColor: '#0a9aa1' },
+                boxShadow: '0 4px 12px rgba(15,179,186,0.3)',
+                ml: { xs: 0, sm: 'auto' },
+              }}
+            >
+              Add Organisation
+          </Button>
+        </Box>
 
         {/* Modern DataGrid */}
         <Box sx={{ 
           flexGrow: 1, 
           minHeight: 0, 
           p: 2,
+          // Allow vertical space for pagination footer
           overflow: 'hidden',
-          '&::-webkit-scrollbar': {
-            display: 'none',
-          },
-          msOverflowStyle: 'none',
-          scrollbarWidth: 'none',
+          display: 'flex'
         }}>
           <DataGrid
-            rows={rows}
+            rows={safeRows}
             columns={columns}
-            rowHeight={60}
-            headerHeight={52}
-            pageSize={pageSize}
-            onPageSizeChange={(newPageSize) => setPageSize(newPageSize)}
-            rowsPerPageOptions={[5, 10, 25, 50, 100]}
+            getRowId={(row) => row.organisation_id ?? row.id}
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            pageSizeOptions={[5, 10, 25, 50, 100]}
             pagination
-            disableSelectionOnClick
-            disableColumnMenu={false}
-            components={{
-              Toolbar: () => <CustomToolbar onAutoResize={handleAutoResize} />,
+            checkboxSelection
+            onRowSelectionModelChange={(model) => {
+              const arr = Array.isArray(model) ? model : [];
+              setSelectedRows(arr);
+            }}
+            initialState={{
+              sorting: { sortModel: [{ field: 'organisation_id', sort: 'asc' }] },
+            }}
+            slots={{
+              toolbar: () => <CustomToolbar onAutoResize={handleAutoResize} />,
             }}
             sx={{
+              flexGrow: 1,
               border: 'none',
               borderRadius: 2,
               backgroundColor: 'white',
@@ -1165,19 +1353,26 @@ const DataTable = ({ data, loading, onNavigateToMap }) => {
                 overflow: 'hidden',
               },
             }}
-            initialState={{
-              pagination: {
-                paginationModel: { pageSize: 10 },
-              },
-              sorting: {
-                sortModel: [{ field: 'organisation_id', sort: 'asc' }],
-              },
-            }}
-            pageSizeOptions={[5, 10, 25, 50, 100]}
-            checkboxSelection
-            disableRowSelectionOnClick
           />
         </Box>
+
+        {/* CRUD Modals */}
+        <OrganisationModal
+          isOpen={isOrganisationModalOpen}
+          onClose={() => { setIsOrganisationModalOpen(false); setEditingOrganisation(null); }}
+          onSave={handleSaveOrganisation}
+          initialData={editingOrganisation}
+          existingOrganisations={data}
+          isLoading={isLoading}
+        />
+
+        <DeleteConfirmationModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => { setIsDeleteModalOpen(false); setDeleteItems([]); }}
+          onConfirm={handleConfirmDelete}
+          items={deleteItems}
+          isLoading={isLoading}
+        />
       </Paper>
     </Box>
   );
