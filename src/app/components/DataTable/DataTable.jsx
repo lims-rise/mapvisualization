@@ -38,12 +38,17 @@ import {
   Launch as LaunchIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Add as AddIcon // added Add icon
+  Add as AddIcon,
+  BarChart as BarChartIcon
 } from '@mui/icons-material';
 
 // Import CRUD components
 import OrganisationModal from './OrganisationModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+// Import reusable Chart component
+import BarDistributionChart from '../Charts/BarDistributionChart';
+import DonutDistributionChart from '../Charts/DonutDistributionChart';
+import MetricCards from '../Charts/MetricCards';
 
 // Custom Toolbar untuk DataGrid dengan auto-resize
 function CustomToolbar({ onAutoResize }) {
@@ -151,6 +156,9 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
   const [editingOrganisation, setEditingOrganisation] = useState(null);
   const [deleteItems, setDeleteItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  // Toggle for showing charts
+  const [showChart, setShowChart] = useState(false);
+  const [chartType, setChartType] = useState('bar');
   
   // NEW: stable pagination model (v8 API)
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
@@ -1039,19 +1047,19 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
       justifyContent: 'center'
     }}>
       <Paper 
-        elevation={24}
-        sx={{ 
-          height: '95%', 
-          width: '98%',
-          display: 'flex', 
-          flexDirection: 'column',
-          borderRadius: 3,
-          overflow: 'hidden',
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)'
-        }}
-      >
+         elevation={24}
+         sx={{ 
+           height: '95%', 
+           width: '98%',
+           display: 'grid',
+           gridTemplateRows: showChart ? 'auto auto auto auto 1fr' : 'auto auto auto 1fr',
+           borderRadius: 3,
+           overflow: 'auto',
+           background: 'rgba(255, 255, 255, 0.95)',
+           backdropFilter: 'blur(10px)',
+           border: '1px solid rgba(255, 255, 255, 0.2)'
+         }}
+       >
         {/* Removed CRUD Toolbar global section */}
         {/* Modern Header with Gradient */}
         <Box sx={{ 
@@ -1083,7 +1091,7 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
           </Box>
         </Box>
 
-        {/* Modern Filters Section with Add Button */}
+        {/* Modern Filters Section with Show Chart Button */}
         <Box sx={{ 
           p: 3, 
           background: 'linear-gradient(to right, #f8f9fa, #e9ecef)',
@@ -1092,7 +1100,7 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ flexWrap: 'wrap' }}>
             <TextField
               size="medium"
-              placeholder="🔍 Search across all columns..."
+              placeholder="Search across all columns..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
@@ -1133,6 +1141,21 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
                 ))}
               </Select>
             </FormControl>
+            <Button
+              variant="outlined"
+              startIcon={<BarChartIcon />}
+              onClick={() => setShowChart(prev => !prev)}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                borderRadius: 3,
+                borderColor: '#0FB3BA',
+                color: '#0FB3BA',
+                '&:hover': { borderColor: '#0a9aa1', backgroundColor: 'rgba(15,179,186,0.08)' },
+              }}
+            >
+              {showChart ? 'Hide Chart' : 'Show Chart'}
+            </Button>
             {(searchTerm || filterState) && (
               <IconButton 
                 onClick={handleClearFilters}
@@ -1151,11 +1174,103 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
             )}
           </Stack>
         </Box>
-        <Box sx={{
-          flexGrow: 1,
-          mt: 2,
-          ml: 2
-        }}>
+
+        {showChart && (
+          <Box sx={{ p: 3, pt: 2, background: '#f8f9fa', maxHeight: '40vh', overflowY: 'auto' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: '#2c3e50' }}>Visualizations</Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant={chartType === 'bar' ? 'contained' : 'outlined'}
+                  onClick={() => setChartType('bar')}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    borderRadius: 2,
+                    backgroundColor: chartType === 'bar' ? '#1976d2' : 'transparent',
+                    color: chartType === 'bar' ? 'white' : '#1976d2',
+                    borderColor: '#1976d2',
+                    '&:hover': {
+                      backgroundColor: chartType === 'bar' ? '#1565c0' : 'rgba(25,118,210,0.08)'
+                    }
+                  }}
+                >
+                  Bar
+                </Button>
+                <Button
+                  variant={chartType === 'donut' ? 'contained' : 'outlined'}
+                  onClick={() => setChartType('donut')}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    borderRadius: 2,
+                    backgroundColor: chartType === 'donut' ? '#0FB3BA' : 'transparent',
+                    color: chartType === 'donut' ? 'white' : '#0FB3BA',
+                    borderColor: '#0FB3BA',
+                    '&:hover': {
+                      backgroundColor: chartType === 'donut' ? '#0a9aa1' : 'rgba(15,179,186,0.08)'
+                    }
+                  }}
+                >
+                  Donut
+                </Button>
+              </Box>
+            </Box>
+
+            {/* KPI Metric Cards */}
+            <Box sx={{ mb: 2 }}>
+              <MetricCards data={filteredData} />
+            </Box>
+
+            {filteredData.length === 0 ? (
+              <Card elevation={4} sx={{ p: 3, borderRadius: 3, textAlign: 'center' }}>
+                <Typography variant="body1" color="text.secondary">
+                  No data to visualize with current filters.
+                </Typography>
+              </Card>
+            ) : (
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                <Box sx={{ flex: 1 }}>
+                  {chartType === 'bar' ? (
+                    <BarDistributionChart
+                      title="Organisations by State"
+                      data={filteredData}
+                      groupBy="state"
+                      color="#1976d2"
+                    />
+                  ) : (
+                    <DonutDistributionChart
+                      title="Organisations by State"
+                      data={filteredData}
+                      groupBy="state"
+                      baseHue={210}
+                    />
+                  )}
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  {chartType === 'bar' ? (
+                    <BarDistributionChart
+                      title="Organisations by Type"
+                      data={filteredData}
+                      groupBy="organisation_type"
+                      color="#0FB3BA"
+                    />
+                  ) : (
+                    <DonutDistributionChart
+                      title="Organisations by Type"
+                      data={filteredData}
+                      groupBy="organisation_type"
+                      baseHue={160}
+                    />
+                  )}
+                </Box>
+              </Stack>
+            )}
+          </Box>
+        )}
+
+        {/* The rest of the existing content: Add button, DataGrid, and modals */}
+        <Box sx={{ p: 2, pt: 2, display: 'flex', justifyContent: 'flex-end' }}>
           <Button
               variant="contained"
               startIcon={<AddIcon />}
@@ -1177,184 +1292,185 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
         </Box>
 
         {/* Modern DataGrid */}
-        <Box sx={{ 
-          flexGrow: 1, 
-          minHeight: 0, 
+        <Box sx={{
           p: 2,
-          // Allow vertical space for pagination footer
-          overflow: 'hidden',
-          display: 'flex'
+          minHeight: 0,
+          height: '100%',
+          width: '100%',
+          overflow: 'auto',
+          display: 'block'
         }}>
-          <DataGrid
-            rows={safeRows}
-            columns={columns}
-            getRowId={(row) => row.organisation_id ?? row.id}
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            pageSizeOptions={[5, 10, 25, 50, 100]}
-            pagination
-            checkboxSelection
-            onRowSelectionModelChange={(model) => {
-              const arr = Array.isArray(model) ? model : [];
-              setSelectedRows(arr);
-            }}
-            initialState={{
-              sorting: { sortModel: [{ field: 'organisation_id', sort: 'asc' }] },
-            }}
-            slots={{
-              toolbar: () => <CustomToolbar onAutoResize={handleAutoResize} />,
-            }}
-            sx={{
-              flexGrow: 1,
-              border: 'none',
-              borderRadius: 2,
-              backgroundColor: 'white',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-              '& .MuiDataGrid-columnHeaders': {
-                background: 'linear-gradient(135deg, #0FB3BA 0%, #1976d2 100%)',
-                color: 'white',
-                borderBottom: 'none',
-                fontSize: '14px',
-                fontWeight: 600,
-                minHeight: '52px',
-                '& .MuiDataGrid-columnHeader': {
-                  '&:focus': {
-                    outline: 'none',
-                  },
-                  '& .MuiDataGrid-columnHeaderTitle': {
-                    color: 'black !important',
-                    fontWeight: 700,
-                    fontSize: '14px',
-                    textShadow: '0 1px 2px rgba(255,255,255,0.5)',
-                  },
-                },
-                '& .MuiDataGrid-columnHeaderTitleContainer': {
-                  color: 'black !important',
-                },
-                '& .MuiDataGrid-iconSeparator': {
-                  color: 'rgba(0,0,0,0.5)',
-                },
-                '& .MuiDataGrid-sortIcon': {
-                  color: 'black !important',
-                },
-                '& .MuiDataGrid-menuIcon': {
-                  color: 'black !important',
-                },
-              },
-              '& .MuiDataGrid-row': {
-                borderBottom: '1px solid #f0f0f0',
-                minHeight: '60px !important',
-                maxHeight: '60px !important',
-                '&:nth-of-type(even)': {
-                  backgroundColor: '#fafafa',
-                },
-                '&:hover': {
-                  backgroundColor: '#e3f2fd',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 12px rgba(15, 179, 186, 0.15)',
-                  transition: 'all 0.2s ease',
-                },
-                '&.Mui-selected': {
-                  backgroundColor: '#e1f5fe',
-                  '&:hover': {
-                    backgroundColor: '#b3e5fc',
-                  },
-                },
-              },
-              '& .MuiDataGrid-cell': {
-                borderColor: 'transparent',
-                fontSize: '13px',
-                padding: '8px 10px',
-                display: 'flex',
-                alignItems: 'flex-start',
-                minHeight: '60px !important',
-                maxHeight: '60px !important',
-                '&:focus': {
-                  outline: 'none',
-                },
-                '&:focus-within': {
-                  outline: 'none',
-                },
-              },
-              '& .MuiDataGrid-columnSeparator': {
-                display: 'none',
-              },
-              '& .MuiDataGrid-toolbarContainer': {
-                background: 'linear-gradient(to right, #f8f9fa, #e9ecef)',
-                borderBottom: '2px solid #e3f2fd',
-                borderRadius: '8px 8px 0 0',
-                p: 2,
-                minHeight: '56px',
-                '& .MuiButton-root': {
-                  color: '#0FB3BA',
-                  fontWeight: 500,
-                  '&:hover': {
-                    backgroundColor: 'rgba(15, 179, 186, 0.1)',
-                  },
-                },
-              },
-              '& .MuiDataGrid-footerContainer': {
-                background: 'linear-gradient(to right, #f8f9fa, #e9ecef)',
-                borderTop: '2px solid #e3f2fd',
-                borderRadius: '0 0 8px 8px',
-                minHeight: '52px',
-                overflow: 'hidden',
-                '& .MuiTablePagination-root': {
-                  color: '#0FB3BA',
-                  fontWeight: 500,
-                  overflow: 'hidden',
-                },
-                '& .MuiIconButton-root': {
-                  color: '#0FB3BA',
-                  '&:hover': {
-                    backgroundColor: 'rgba(15, 179, 186, 0.1)',
-                  },
-                },
-                '& .MuiTablePagination-toolbar': {
-                  overflow: 'hidden',
-                },
-                '& .MuiTablePagination-spacer': {
-                  overflow: 'hidden',
-                },
-              },
-              '& .MuiCheckbox-root': {
-                color: '#0FB3BA',
-                '&.Mui-checked': {
-                  color: '#0FB3BA',
-                },
-              },
-              '& .MuiDataGrid-virtualScroller': {
-                overflow: 'auto',
-                '&::-webkit-scrollbar': {
-                  width: '8px',
-                  height: '8px',
-                },
-                '&::-webkit-scrollbar-track': {
-                  backgroundColor: '#f1f1f1',
-                  borderRadius: '4px',
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  backgroundColor: '#c1c1c1',
-                  borderRadius: '4px',
-                  '&:hover': {
-                    backgroundColor: '#a8a8a8',
-                  },
-                },
-                '& .MuiDataGrid-row': {
-                  '& .MuiDataGrid-cell': {
-                    overflow: 'visible',
-                  },
-                },
-              },
-              '& .MuiDataGrid-main': {
-                overflow: 'hidden',
-              },
-              '& .MuiDataGrid-overlay': {
-                overflow: 'hidden',
-              },
-            }}
-          />
-        </Box>
+           <DataGrid
+             rows={safeRows}
+             columns={columns}
+             getRowId={(row) => row.organisation_id ?? row.id}
+             paginationModel={paginationModel}
+             onPaginationModelChange={setPaginationModel}
+             pageSizeOptions={[5, 10, 25, 50, 100]}
+             pagination
+             checkboxSelection
+             autoHeight={showChart}
+             onRowSelectionModelChange={(model) => {
+               const arr = Array.isArray(model) ? model : [];
+               setSelectedRows(arr);
+             }}
+             initialState={{
+               sorting: { sortModel: [{ field: 'organisation_id', sort: 'asc' }] },
+             }}
+             slots={{
+               toolbar: () => <CustomToolbar onAutoResize={handleAutoResize} />,
+             }}
+             sx={{
+               height: showChart ? 'auto' : '100%',
+               border: 'none',
+               borderRadius: 2,
+               backgroundColor: 'white',
+               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+               '& .MuiDataGrid-columnHeaders': {
+                 background: 'linear-gradient(135deg, #0FB3BA 0%, #1976d2 100%)',
+                 color: 'white',
+                 borderBottom: 'none',
+                 fontSize: '14px',
+                 fontWeight: 600,
+                 minHeight: '52px',
+                 '& .MuiDataGrid-columnHeader': {
+                   '&:focus': {
+                     outline: 'none',
+                   },
+                   '& .MuiDataGrid-columnHeaderTitle': {
+                     color: 'black !important',
+                     fontWeight: 700,
+                     fontSize: '14px',
+                     textShadow: '0 1px 2px rgba(255,255,255,0.5)',
+                   },
+                 },
+                 '& .MuiDataGrid-columnHeaderTitleContainer': {
+                   color: 'black !important',
+                 },
+                 '& .MuiDataGrid-iconSeparator': {
+                   color: 'rgba(0,0,0,0.5)',
+                 },
+                 '& .MuiDataGrid-sortIcon': {
+                   color: 'black !important',
+                 },
+                 '& .MuiDataGrid-menuIcon': {
+                   color: 'black !important',
+                 },
+               },
+               '& .MuiDataGrid-row': {
+                 borderBottom: '1px solid #f0f0f0',
+                 minHeight: '60px !important',
+                 maxHeight: '60px !important',
+                 '&:nth-of-type(even)': {
+                   backgroundColor: '#fafafa',
+                 },
+                 '&:hover': {
+                   backgroundColor: '#e3f2fd',
+                   transform: 'translateY(-1px)',
+                   boxShadow: '0 4px 12px rgba(15, 179, 186, 0.15)',
+                   transition: 'all 0.2s ease',
+                 },
+                 '&.Mui-selected': {
+                   backgroundColor: '#e1f5fe',
+                   '&:hover': {
+                     backgroundColor: '#b3e5fc',
+                   },
+                 },
+               },
+               '& .MuiDataGrid-cell': {
+                 borderColor: 'transparent',
+                 fontSize: '13px',
+                 padding: '8px 10px',
+                 display: 'flex',
+                 alignItems: 'flex-start',
+                 minHeight: '60px !important',
+                 maxHeight: '60px !important',
+                 '&:focus': {
+                   outline: 'none',
+                 },
+                 '&:focus-within': {
+                   outline: 'none',
+                 },
+               },
+               '& .MuiDataGrid-columnSeparator': {
+                 display: 'none',
+               },
+               '& .MuiDataGrid-toolbarContainer': {
+                 background: 'linear-gradient(to right, #f8f9fa, #e9ecef)',
+                 borderBottom: '2px solid #e3f2fd',
+                 borderRadius: '8px 8px 0 0',
+                 p: 2,
+                 minHeight: '56px',
+                 '& .MuiButton-root': {
+                   color: '#0FB3BA',
+                   fontWeight: 500,
+                   '&:hover': {
+                     backgroundColor: 'rgba(15, 179, 186, 0.1)',
+                   },
+                 },
+               },
+               '& .MuiDataGrid-footerContainer': {
+                 background: 'linear-gradient(to right, #f8f9fa, #e9ecef)',
+                 borderTop: '2px solid #e3f2fd',
+                 borderRadius: '0 0 8px 8px',
+                 minHeight: '52px',
+                 overflow: 'hidden',
+                 '& .MuiTablePagination-root': {
+                   color: '#0FB3BA',
+                   fontWeight: 500,
+                   overflow: 'hidden',
+                 },
+                 '& .MuiIconButton-root': {
+                   color: '#0FB3BA',
+                   '&:hover': {
+                     backgroundColor: 'rgba(15, 179, 186, 0.1)',
+                   },
+                 },
+                 '& .MuiTablePagination-toolbar': {
+                   overflow: 'hidden',
+                 },
+                 '& .MuiTablePagination-spacer': {
+                   overflow: 'hidden',
+                 },
+               },
+               '& .MuiCheckbox-root': {
+                 color: '#0FB3BA',
+                 '&.Mui-checked': {
+                   color: '#0FB3BA',
+                 },
+               },
+               '& .MuiDataGrid-virtualScroller': {
+                 overflow: 'auto',
+                 '&::-webkit-scrollbar': {
+                   width: '8px',
+                   height: '8px',
+                 },
+                 '&::-webkit-scrollbar-track': {
+                   backgroundColor: '#f1f1f1',
+                   borderRadius: '4px',
+                 },
+                 '&::-webkit-scrollbar-thumb': {
+                   backgroundColor: '#c1c1c1',
+                   borderRadius: '4px',
+                   '&:hover': {
+                     backgroundColor: '#a8a8a8',
+                   },
+                 },
+                 '& .MuiDataGrid-row': {
+                   '& .MuiDataGrid-cell': {
+                     overflow: 'visible',
+                   },
+                 },
+               },
+               '& .MuiDataGrid-main': {
+                 overflow: 'hidden',
+               },
+               '& .MuiDataGrid-overlay': {
+                 overflow: 'hidden',
+               },
+             }}
+           />
+         </Box>
 
         {/* CRUD Modals */}
         <OrganisationModal
