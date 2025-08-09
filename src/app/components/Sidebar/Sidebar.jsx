@@ -3,6 +3,20 @@ import React, { useEffect, useState } from "react";
 import MapWrapper from "../Map/MapWrapper";
 import RightSidebar from "../RightSidebar/RightSidebar";
 
+// Tiny JWT decode (payload only, no verification)
+const decodeJwtPayload = (token) => {
+  try {
+    const payload = token.split('.')[1];
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(atob(base64).split('').map(c => {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+};
+
 function Sidebar() {
   const [campaigns, setCampaigns] = useState([]); // Daftar kampanye
   const [countries, setCountries] = useState([]); // Daftar negara
@@ -23,6 +37,40 @@ function Sidebar() {
   const [isLoadingObjective, setIsloadingObjective] = useState(true); //Loading state untuk objective
   const [isLoadingEquipment, setIsLoadingEquipment] = useState(true); // Loading state untuk equipment
   const [isCheckboxMode, setIsCheckboxMode] = useState(true); // Toggle untuk memilih mode (checkbox atau dropdown)
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // Load current user info from cookie
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          console.log('User data received:', data);
+          setCurrentUser(data.user);
+        } else {
+          console.log('Failed to fetch user, status:', res.status);
+          setCurrentUser(null);
+        }
+      } catch (error) {
+        console.error('Failed to load user:', error);
+        setCurrentUser(null);
+      }
+    };
+    loadUser();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      setCurrentUser(null);
+      if (typeof window !== 'undefined') {
+        window.location.assign('/login');
+      }
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   // === Map Filters State ===
   const [availableMapStates, setAvailableMapStates] = useState([]);
@@ -222,9 +270,9 @@ function Sidebar() {
   // console.log('selectedEquipment', selectedEquipment);
   return (
     <>
-    <div className="sidebar-container hidden sm:hidden md:block w-80 bg-gradient-to-b from-white via-gray-50 to-gray-100 text-gray-800 shadow-2xl max-h-screen overflow-y-auto overflow-x-hidden custom-scrollbar border-r border-gray-200">
+    <div className="sidebar-container hidden sm:hidden md:flex w-80 bg-gradient-to-b from-white via-gray-50 to-gray-100 text-gray-800 shadow-2xl h-screen flex-col border-r border-gray-200 relative">
       {/* Modern Header with Light Gradient - Matching DataTable */}
-      <div className="w-80 sm:hidden md:block text-white shadow-xl max-h-screen overflow-y-auto rounded-b-3xl fixed top-0 left-0 z-20 backdrop-blur-sm" style={{
+      <div className="w-80 sm:hidden md:block text-white shadow-xl rounded-b-3xl flex-shrink-0 z-20 backdrop-blur-sm" style={{
         background: 'linear-gradient(135deg, #0FB3BA 0%, #1976d2 100%)',
         boxShadow: '0 4px 20px rgba(15, 179, 186, 0.3)'
       }}>
@@ -242,7 +290,7 @@ function Sidebar() {
         </div>
       </div>
 
-      <div className="p-6 max-h-full mt-40 space-y-8">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar p-6 space-y-8">
         {/* Modern Filter Country - Light Theme */}
         <div className="group">
           <label htmlFor="country" className="flex items-center text-sm font-semibold mb-3 text-gray-700 group-hover:text-gray-900 transition-colors duration-200">
@@ -459,6 +507,36 @@ function Sidebar() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* User profile + Logout at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white/80 backdrop-blur">
+          {currentUser ? (
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-gray-800">{currentUser.name}</div>
+                <div className="text-xs text-gray-500">{currentUser.role}</div>
+              </div>
+              <button onClick={handleLogout} className="text-xs px-3 py-1.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700">Logout</button>
+            </div>
+          ) : (
+            <div className="text-xs text-gray-500">Not signed in</div>
+          )}
+        </div>
+      </div>
+
+      {/* User profile + Logout - Fixed at bottom */}
+      <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white/90 backdrop-blur">
+        {currentUser ? (
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-gray-800">{currentUser.name}</div>
+              <div className="text-xs text-gray-500">{currentUser.role}</div>
+            </div>
+            <button onClick={handleLogout} className="text-xs px-3 py-1.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">Logout</button>
+          </div>
+        ) : (
+          <div className="text-xs text-gray-500">Not signed in</div>
         )}
       </div>
     </div>

@@ -1,31 +1,9 @@
-// /** @type {import('next').NextConfig} */
-// const nextConfig = {};
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// export default nextConfig;
-
-// /** @type {import('next').NextConfig} */
-// const nextConfig = {
-//     reactStrictMode: false,  // Disable React Strict Mode
-//     experimental: {
-//       reactRefresh: false, // Optionally disable Fast Refresh for testing purposes
-//     },
-//   };
-  
-//   export default nextConfig;
-  
-// /** @type {import('next').NextConfig} */
-// const nextConfig = {
-//     // Cek pengaturan lainnya di sini
-//     reactStrictMode: false,
-//     // experimental: {
-//     //     turbopack: false,
-//     //   },
-//   };
-  
-//   export default nextConfig;
-
-// next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false, // Disarankan untuk pengembangan dan produksi
@@ -33,8 +11,15 @@ const nextConfig = {
   experimental: {
     appDir: true, // Aktifkan penggunaan struktur `src/app`
   },
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      '@/lib': path.resolve(__dirname, 'lib'),
+      '@': path.resolve(__dirname, 'src'),
+    };
+    return config;
+  },
 };
 
 export default nextConfig;
 
-  
