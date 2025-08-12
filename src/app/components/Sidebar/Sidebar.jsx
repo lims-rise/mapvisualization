@@ -246,7 +246,7 @@ function Sidebar() {
         {/* Modern Filter Country - Light Theme */}
         <div className="group">
           <label htmlFor="country" className="flex items-center text-sm font-semibold mb-3 text-gray-700 group-hover:text-gray-900 transition-colors duration-200">
-            <div className="w-5 h-5 mr-2 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full flex items-center justify-center shadow-sm">
+            <div className="w-5 h-5 mr-2 bg-gradient-to-r from-cyan-400 to-emerald-400 rounded-full flex items-center justify-center shadow-md">
               <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -287,7 +287,7 @@ function Sidebar() {
         {/* Modern Filter Visualization - Light Theme */}
         <div className="group">
           <label htmlFor="menu" className="flex items-center text-sm font-semibold mb-3 text-gray-700 group-hover:text-gray-900 transition-colors duration-200">
-            <div className="w-5 h-5 mr-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-sm">
+            <div className="w-5 h-5 mr-2 bg-gradient-to-r from-violet-400 to-pink-400 rounded-full flex items-center justify-center shadow-md">
               <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
@@ -299,7 +299,7 @@ function Sidebar() {
               <div className="w-full bg-white border border-gray-200 rounded-xl p-3 shadow-sm">
                 <div className="flex items-center space-x-3">
                   <div className="animate-pulse w-4 h-4 bg-purple-500 rounded-full"></div>
-                  <span className="text-gray-600">Loading visualization options...</span>
+                  <span className="text-gray-600">Loading options...</span>
                 </div>
               </div>
             ) : (
@@ -330,7 +330,7 @@ function Sidebar() {
         </div>
 
         {/* Status Indicator - Light Theme */}
-        {selectedCountry && selectedMenu && (
+        {/* {selectedCountry && selectedMenu && (
           <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4 shadow-sm">
             <div className="flex items-center space-x-3">
               <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
@@ -342,7 +342,7 @@ function Sidebar() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* === Map Specific Checkbox Filters === */}
         {selectedMenu?.menu === 'Map' && (

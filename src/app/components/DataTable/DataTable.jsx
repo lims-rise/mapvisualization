@@ -465,18 +465,32 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
         flex: 0,
         resizable: true,
         renderCell: (params) => (
-          <Chip 
-            label={params.value || '-'}
-            size="small"
-            variant="outlined"
-            color="primary"
-            sx={{ 
-              fontWeight: 600, 
-              fontSize: '10px',
-              height: 20,
-              '& .MuiChip-label': { px: 0.8 }
-            }}
-          />
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            py: 0.5,
+            px: 1,
+            width: '100%'
+          }}>
+            <Chip 
+              label={params.value || '-'}
+              size="small"
+              variant="outlined"
+              color="primary"
+              sx={{ 
+                fontWeight: 600, 
+                fontSize: '11px',
+                height: 24,
+                minWidth: '50px',
+                '& .MuiChip-label': { 
+                  px: 1,
+                  py: 0.5
+                }
+              }}
+            />
+          </Box>
         ),
       },
       {
@@ -492,10 +506,11 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
         renderCell: (params) => (
           <Box sx={{ 
             display: 'flex', 
-            alignItems: 'flex-start', 
+            alignItems: 'center', 
             gap: 1,
             height: '100%',
             py: 0.5,
+            px: 1,
             width: '100%'
           }}>
             <Box sx={{
@@ -503,8 +518,7 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
               height: 4,
               borderRadius: '50%',
               backgroundColor: '#0FB3BA',
-              flexShrink: 0,
-              mt: 0.5
+              flexShrink: 0
             }} />
             <Typography 
               variant="body2" 
@@ -518,7 +532,8 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
                 display: '-webkit-box',
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: 'vertical',
-                flex: 1
+                flex: 1,
+                textAlign: 'left'
               }}
               title={params.value || '-'}
             >
@@ -553,9 +568,9 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
           const tier = params.value;
           const getTierColor = (tier) => {
             switch(tier) {
-              case 1: return '#ff6b6b';
-              case 2: return '#4ecdc4';
-              case 3: return '#45b7d1';
+              case 'A': return '#45b7d1';
+              case 'B': return '#4ecdc4';
+              case 'C': return '#ff6b6b';
               default: return '#95a5a6';
             }
           };
@@ -592,10 +607,10 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
         renderCell: (params) => (
           <Box sx={{ 
             display: 'flex', 
-            alignItems: 'flex-start',
+            alignItems: 'center',
             height: '100%',
             py: 0.5,
-            width: '100%'
+            px: 1,
           }}>
             <Typography 
               variant="body2" 
@@ -603,16 +618,60 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
                 color: '#34495e',
                 fontWeight: 500,
                 backgroundColor: '#ecf0f1',
-                padding: '2px 6px',
+                padding: '4px 8px',
                 borderRadius: 1,
-                fontSize: '10px',
-                lineHeight: 1.2,
+                fontSize: '11px',
+                lineHeight: 1.3,
                 wordBreak: 'break-word',
                 overflow: 'hidden',
                 display: '-webkit-box',
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: 'vertical',
-                width: '100%'
+                width: '100%',
+                textAlign: 'left'
+              }}
+              title={params.value || '-'}
+            >
+              {params.value || '-'}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: 'address',
+        headerName: 'Address',
+        width: columnWidths.address || 240,
+        minWidth: 120,
+        maxWidth: 220,
+        flex: 0.2,
+        headerAlign: 'left',
+        align: 'left',
+        resizable: true,
+        renderCell: (params) => (
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center',
+            height: '100%',
+            py: 0.5,
+            px: 1,
+          }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: '#34495e',
+                fontWeight: 500,
+                backgroundColor: '#ecf0f1',
+                padding: '4px 8px',
+                borderRadius: 1,
+                fontSize: '11px',
+                lineHeight: 1.3,
+                wordBreak: 'break-word',
+                overflow: 'hidden',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                width: '100%',
+                textAlign: 'left'
               }}
               title={params.value || '-'}
             >
@@ -889,86 +948,144 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
     setFilterState("");
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ 
-        p: 3, 
-        height: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        position: 'relative'
-      }}>
-        <Card elevation={24} sx={{ 
-          p: 6, 
-            textAlign: 'center', 
-            minWidth: 400,
-            borderRadius: 4,
-            background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)'
-          }}>
-          <CardContent>
-            <Box sx={{ position: 'relative', display: 'inline-flex', mb: 3 }}>
-              <TableIcon sx={{ 
-                fontSize: 64, 
-                color: '#0FB3BA',
-                animation: 'pulse 2s infinite'
-              }} />
-              <Box sx={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 80,
-                height: 80,
-                borderRadius: '50%',
-                border: '3px solid #0FB3BA30',
-                borderTop: '3px solid #0FB3BA',
-                animation: 'spin 1s linear infinite'
-              }} />
-            </Box>
-            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: '#2c3e50' }}>
-              🔄 Loading Data Table...
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ fontSize: '16px', mb: 2 }}>
-              Please wait while we prepare your analytics dashboard
-            </Typography>
-            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', gap: 1 }}>
-              {[0, 1, 2].map((i) => (
-                <Box
-                  key={i}
-                  sx={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    backgroundColor: '#0FB3BA',
-                    animation: `bounce 1.4s infinite ease-in-out both`,
-                    animationDelay: `${i * 0.16}s`
-                  }}
-                />
-              ))}
-            </Box>
-          </CardContent>
-        </Card>
-        <style jsx global>{`
-          @keyframes spin {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-          }
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-          }
-          @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); } 
-            40% { transform: scale(1); }
-          }
-        `}</style>
-      </Box>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <Box sx={{ 
+  //       height: '100vh', 
+  //       p: 3, 
+  //       background: 'linear-gradient(135deg, #f0f2ff 0%, #e8f5e8 25%, #f0fdff 50%, #f8f0ff 75%, #e8f5e8 100%)',
+  //       display: 'flex',
+  //       alignItems: 'center',
+  //       justifyContent: 'center',
+  //       position: 'relative',
+  //       zIndex: 10000,
+  //       '&::before': {
+  //         content: '""',
+  //         position: 'absolute',
+  //         top: 0,
+  //         left: 0,
+  //         right: 0,
+  //         bottom: 0,
+  //         background: 'radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(34, 197, 94, 0.1) 0%, transparent 50%), radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
+  //         pointerEvents: 'none',
+  //         zIndex: 10001,
+  //       }
+  //     }}>
+  //       <Paper 
+  //         elevation={24}
+  //         sx={{ 
+  //           height: '95%', 
+  //           width: '98%',
+  //           display: 'flex',
+  //           alignItems: 'center',
+  //           justifyContent: 'center',
+  //           borderRadius: 3,
+  //           background: 'rgba(255, 255, 255, 0.75)',
+  //           backdropFilter: 'saturate(120%) blur(6px)',
+  //           WebkitBackdropFilter: 'saturate(120%) blur(6px)',
+  //           border: '1px solid rgba(255, 255, 255, 0.3)',
+  //           position: 'relative',
+  //           zIndex: 1,
+  //           overflow: 'hidden',
+  //         }}
+  //       >
+  //         <Card elevation={12} sx={{ 
+  //           p: 6, 
+  //           textAlign: 'center', 
+  //           minWidth: 420,
+  //           maxWidth: 500,
+  //           borderRadius: 4,
+  //           background: 'rgba(255, 255, 255, 0.98)',
+  //           border: '1px solid rgba(255, 255, 255, 0.3)',
+  //           boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2), 0 8px 20px rgba(0, 0, 0, 0.1)',
+  //           position: 'relative',
+  //           transform: 'scale(1)',
+  //           animation: 'fadeInUp 0.6s ease-out',
+  //           zIndex: 2,
+  //         }}>
+  //           <CardContent sx={{ p: 0 }}>
+  //             <Box sx={{ position: 'relative', display: 'inline-flex', mb: 4 }}>
+  //               <TableIcon sx={{ 
+  //                 fontSize: 72, 
+  //                 color: '#0FB3BA',
+  //                 animation: 'pulse 2s infinite',
+  //                 filter: 'drop-shadow(0 4px 8px rgba(15, 179, 186, 0.3))'
+  //               }} />
+  //               <Box sx={{
+  //                 position: 'absolute',
+  //                 top: '50%',
+  //                 left: '50%',
+  //                 transform: 'translate(-50%, -50%)',
+  //                 width: 90,
+  //                 height: 90,
+  //                 borderRadius: '50%',
+  //                 border: '4px solid rgba(15, 179, 186, 0.2)',
+  //                 borderTop: '4px solid #0FB3BA',
+  //                 animation: 'spin 1.2s linear infinite'
+  //               }} />
+  //             </Box>
+  //             <Typography variant="h4" gutterBottom sx={{ 
+  //               fontWeight: 700, 
+  //               color: '#2c3e50',
+  //               mb: 2,
+  //               textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+  //             }}>
+  //               🔄 Loading Data Table
+  //             </Typography>
+  //             <Typography variant="h6" color="text.secondary" sx={{ 
+  //               fontSize: '18px', 
+  //               mb: 3,
+  //               fontWeight: 500,
+  //               opacity: 0.8
+  //             }}>
+  //               Please wait while we prepare your analytics dashboard
+  //             </Typography>
+  //             <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 1.5 }}>
+  //               {[0, 1, 2].map((i) => (
+  //                 <Box
+  //                   key={i}
+  //                   sx={{
+  //                     width: 12,
+  //                     height: 12,
+  //                     borderRadius: '50%',
+  //                     backgroundColor: '#0FB3BA',
+  //                     animation: `bounce 1.4s infinite ease-in-out both`,
+  //                     animationDelay: `${i * 0.16}s`,
+  //                     boxShadow: '0 2px 4px rgba(15, 179, 186, 0.3)'
+  //                   }}
+  //                 />
+  //               ))}
+  //             </Box>
+  //           </CardContent>
+  //         </Card>
+  //         <style jsx global>{`
+  //           @keyframes spin {
+  //             0% { transform: translate(-50%, -50%) rotate(0deg); }
+  //             100% { transform: translate(-50%, -50%) rotate(360deg); }
+  //           }
+  //           @keyframes pulse {
+  //             0%, 100% { opacity: 1; transform: scale(1); }
+  //             50% { opacity: 0.8; transform: scale(1.05); }
+  //           }
+  //           @keyframes bounce {
+  //             0%, 80%, 100% { transform: scale(0); opacity: 0.7; } 
+  //             40% { transform: scale(1); opacity: 1; }
+  //           }
+  //           @keyframes fadeInUp {
+  //             0% { 
+  //               opacity: 0; 
+  //               transform: translateY(30px) scale(0.9); 
+  //             }
+  //             100% { 
+  //               opacity: 1; 
+  //               transform: translateY(0) scale(1); 
+  //             }
+  //           }
+  //         `}</style>
+  //       </Paper>
+  //     </Box>
+  //   );
+  // }
 
   if (!data?.length) {
     return (
@@ -981,7 +1098,7 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         position: 'relative'
       }}>
-        <Card elevation={24} sx={{ 
+        <Card elevation={12} sx={{ 
           p: 6, 
           textAlign: 'center', 
           minWidth: 400,
@@ -1041,10 +1158,21 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
     <Box sx={{ 
       height: '100vh', 
       p: 3, 
-      background: '#ffffff',
+      background: 'linear-gradient(135deg, #f0f2ff 0%, #e8f5e8 25%, #f0fdff 50%, #f8f0ff 75%, #e8f5e8 100%)',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
+      position: 'relative',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(34, 197, 94, 0.1) 0%, transparent 50%), radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
+        pointerEvents: 'none'
+      }
     }}>
       <Paper 
          elevation={24}
@@ -1057,7 +1185,9 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
            overflow: 'auto',
            background: 'rgba(255, 255, 255, 0.95)',
            backdropFilter: 'blur(10px)',
-           border: '1px solid rgba(255, 255, 255, 0.2)'
+           border: '1px solid rgba(255, 255, 255, 0.2)',
+           position: 'relative',
+           zIndex: 1
          }}
        >
         {/* Removed CRUD Toolbar global section */}
@@ -1094,8 +1224,8 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
         {/* Modern Filters Section with Show Chart Button */}
         <Box sx={{ 
           p: 3, 
-          background: 'linear-gradient(to right, #f8f9fa, #e9ecef)',
-          borderBottom: '2px solid #e3f2fd'
+          background: '#ffffff',
+          borderBottom: '1px solid #e3f2fd'
         }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ flexWrap: 'wrap' }}>
             <TextField
@@ -1382,7 +1512,7 @@ const DataTable = ({ data, loading, onNavigateToMap, onDataChange }) => {
                  fontSize: '13px',
                  padding: '8px 10px',
                  display: 'flex',
-                 alignItems: 'flex-start',
+                 alignItems: 'center',
                  minHeight: '60px !important',
                  maxHeight: '60px !important',
                  '&:focus': {
